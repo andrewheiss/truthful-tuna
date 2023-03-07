@@ -1,11 +1,16 @@
 ---
-title: "truthful-tuna"
+title: "Amicable Contempt: A Conceptual Framework for Understanding International NGO Behavior in the Era of Closing Civic Space"
+author: "Andrew Heiss"
+format:
+  html:
+    code-tools: false
+    toc: false
 ---
 
-This is a Quarto website.
+## Abstract
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+Abstract goes here
 
-```{r}
-1 + 1
-```
+## Code
+
+All the raw code and data for this paper is available in a [GitHub repository](https://github.com/andrewheiss/truthful-tuna).
