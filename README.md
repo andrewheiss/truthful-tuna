@@ -1,6 +1,11 @@
 
 <!-- README.md is generated from README.qmd. Please edit that file -->
 
+# Amicable Contempt: A Conceptual Framework for Understanding International NGO Behavior in the Era of Closing Civic Space
+
+<!-- badges: start -->
+<!-- badges: end -->
+
 ### 😇🐟: Note on “truthful tuna” project name
 
 Because project titles change all the time with revisions, rewriting,
@@ -16,3 +21,18 @@ codename_message()
 codename(seed = "amicable contempt", type = "ubuntu")
 #> [1] "truthful tuna"
 ```
+
+## Licenses
+
+**Text and figures:** All prose and images are licensed under Creative
+Commons ([CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)).
+
+**Code:** All code is licensed under the [MIT License](LICENSE.md).
+
+## Contributions and Code of Conduct
+
+We welcome contributions from everyone. Before you get started, please
+see our [contributor guidelines](CONTRIBUTING.md). Please note that this
+project is released with a [Contributor Code of
+Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html).
+By contributing to this project, you agree to abide by its terms.
