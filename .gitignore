@@ -1,0 +1,34 @@
+# R stuff
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# Quarto stuff
+/.quarto/
+/.luarc.json
+
+# Targets stuff
+_targets
+_targets.yaml
+
+# Site output
+**/_site/*
+**/site_libs/*
+
+# knitr and caching stuff
+**/*_files/*
+**/*_cache/*
+*.log
+
+# Output
+# (ignore for now)
+manuscript/*.pdf
+manuscript/*.docx
+manuscript/*.odt
+
+# Miscellaneous
+*.~lock.*
+.DS_Store
+.dropbox
+Icon?
