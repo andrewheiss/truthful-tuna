@@ -5,6 +5,11 @@ page-layout: full
 ---
 
 ```{r include=FALSE}
+# Add the output targets as dependencies to the overall website
+targets::tar_load(c(output_nice, output_ms))
+```
+
+```{r include=FALSE}
 library(dplyr)
 library(glue)
 
