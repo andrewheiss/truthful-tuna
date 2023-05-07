@@ -1,0 +1,22 @@
+---
+title: 'Online appendix for "Amicable Contempt: A Conceptual Framework for Understanding International NGO Behavior in the Era of Closing Civic Space"'
+short-title: 'Online appendix for "Amicable Contempt"'
+author:
+- name: Andrew Heiss
+  affiliation: Georgia State University
+  email: aheiss@gsu.edu
+  orcid: 0000-0002-3948-3914
+bibliography: references.bib
+crossref: 
+  tbl-title: Appendix Table
+  fig-title: Appendix Figure
+---
+
+Here's the appendix
+
+```{r warning=FALSE, message=FALSE}
+library(gt)
+
+mtcars |>
+  gt()
+```
