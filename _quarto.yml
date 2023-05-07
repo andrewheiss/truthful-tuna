@@ -49,7 +49,9 @@ website:
       # - text: "Models"
       #   file: notebook/model-details.qmd
       - text: "Paper"
-        file: notebook/Paper.qmd
+        file: notebook/paper.qmd
+      - text: "Appendix"
+        file: notebook/appendix.qmd
     
     right:
       - icon: github

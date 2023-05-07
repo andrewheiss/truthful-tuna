@@ -1,0 +1,42 @@
+---
+title: Appendix
+toc: false
+page-layout: full
+---
+
+```{r include=FALSE}
+library(dplyr)
+library(glue)
+
+links_to_include <- tribble(
+  ~title, ~path, 
+    ~icon, ~btn_class, ~target,
+  "HTML", "/manuscript/output/appendix.html", 
+    '<i class="fa-solid fa-file-lines"></i>', "btn-success", "appendix",
+  "HTML <small>(new window)</small>", "/manuscript/output/appendix.html", 
+    '<i class="fa-solid fa-arrow-up-right-from-square"></i>', "btn-success", "_blank",
+  "PDF", "/manuscript/output/appendix.pdf", 
+    '<i class="fa-solid fa-file-pdf"></i>', "btn-danger", "appendix",
+  "PDF <small>(new window)</small>", "/manuscript/output/appendix.pdf", 
+    '<i class="fa-solid fa-file-arrow-down"></i>', "btn-danger", "_blank",
+  "Manuscripty PDF", "/manuscript/output-ms/appendix.pdf", 
+    '<i class="fa-solid fa-file-pdf"></i>', "btn-warning", "appendix",
+  "Manuscript PDF <small>(new window)</small>", "/manuscript/output-ms/appendix.pdf", 
+    '<i class="fa-solid fa-file-arrow-down"></i>', "btn-warning", "_blank"
+) %>% 
+  mutate(nice_link = glue(
+    '<a class="btn [btn_class] btn-sm mb-1" href="[path]" target="[target]">',
+    '[icon] &ensp;[title]',
+    '</a>', .open = "[", .close = "]"
+  ))
+
+links <- paste(links_to_include$nice_link, collapse = "\n")
+```
+
+```{=html}
+<p class="text-center">
+  `r links`
+</p>
+
+<iframe src="/manuscript/output/appendix.html" frameborder="0" style="overflow:hidden;height:90%;width:100%;border:2px solid #ccc;" height="90%" width="100%" name="appendix"></iframe>
+```

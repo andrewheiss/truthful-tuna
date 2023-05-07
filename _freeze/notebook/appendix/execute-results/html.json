@@ -1,0 +1,14 @@
+{
+  "hash": "cef70bda23f1448d892d737b5cbee1ec",
+  "result": {
+    "markdown": "---\ntitle: Appendix\ntoc: false\npage-layout: full\n---\n\n\n\n```{=html}\n<p class=\"text-center\">\n  <a class=\"btn btn-success btn-sm mb-1\" href=\"/manuscript/output/appendix.html\" target=\"appendix\"><i class=\"fa-solid fa-file-lines\"></i> &ensp;HTML</a>\n<a class=\"btn btn-success btn-sm mb-1\" href=\"/manuscript/output/appendix.html\" target=\"_blank\"><i class=\"fa-solid fa-arrow-up-right-from-square\"></i> &ensp;HTML <small>(new window)</small></a>\n<a class=\"btn btn-danger btn-sm mb-1\" href=\"/manuscript/output/appendix.pdf\" target=\"appendix\"><i class=\"fa-solid fa-file-pdf\"></i> &ensp;PDF</a>\n<a class=\"btn btn-danger btn-sm mb-1\" href=\"/manuscript/output/appendix.pdf\" target=\"_blank\"><i class=\"fa-solid fa-file-arrow-down\"></i> &ensp;PDF <small>(new window)</small></a>\n<a class=\"btn btn-warning btn-sm mb-1\" href=\"/manuscript/output-ms/appendix.pdf\" target=\"appendix\"><i class=\"fa-solid fa-file-pdf\"></i> &ensp;Manuscripty PDF</a>\n<a class=\"btn btn-warning btn-sm mb-1\" href=\"/manuscript/output-ms/appendix.pdf\" target=\"_blank\"><i class=\"fa-solid fa-file-arrow-down\"></i> &ensp;Manuscript PDF <small>(new window)</small></a>\n</p>\n\n<iframe src=\"/manuscript/output/appendix.html\" frameborder=\"0\" style=\"overflow:hidden;height:90%;width:100%;border:2px solid #ccc;\" height=\"90%\" width=\"100%\" name=\"appendix\"></iframe>\n```\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}
