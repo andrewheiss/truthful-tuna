@@ -29,6 +29,16 @@ here_rel <- function(...) {fs::path_rel(here::here(...))}
 
 # Actual pipeline ---------------------------------------------------------
 list(
+  ## Manuscript and analysis notebook ----
   tar_quarto(output_nice, path = "manuscript", quiet = FALSE, profile = "nice"),
-  tar_quarto(output_ms, path = "manuscript", quiet = FALSE, profile = "ms")
+  tar_quarto(output_ms, path = "manuscript", quiet = FALSE, profile = "ms"),
+  
+  tar_quarto(website, path = ".", quiet = FALSE),
+  tar_target(deploy_script, here_rel("deploy.sh"), format = "file"),
+  tar_target(deploy, {
+    # Force a dependency
+    website
+    # Run the deploy script
+    if (Sys.getenv("UPLOAD_WEBSITES") == "TRUE") processx::run(paste0("./", deploy_script))
+  })
 )
