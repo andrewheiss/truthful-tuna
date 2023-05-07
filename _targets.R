@@ -29,5 +29,6 @@ here_rel <- function(...) {fs::path_rel(here::here(...))}
 
 # Actual pipeline ---------------------------------------------------------
 list(
-  tar_target(data, data.frame(x = sample.int(100), y = sample.int(100)))
+  tar_quarto(output_nice, path = "manuscript", quiet = FALSE, profile = "nice"),
+  tar_quarto(output_ms, path = "manuscript", quiet = FALSE, profile = "ms")
 )
