@@ -28,9 +28,8 @@ data/raw-data/
 
 # Output
 # (ignore for now)
-manuscript/*.pdf
-manuscript/*.docx
-manuscript/*.odt
+manuscript/output/
+manuscript/output-ms/
 
 # Miscellaneous
 *.~lock.*
