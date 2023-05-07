@@ -56,15 +56,15 @@ website:
         aria-label: github
         href: https://github.com/andrewheiss/truthful-tuna
     
-    page-footer:
-      left: |
-        Content {{< fa brands creative-commons >}} 2015–2023 by Andrew Heiss<br>
-        All content licensed under a {{< fa brands creative-commons >}}
-        {{< fa brands creative-commons-by >}} {{< fa brands creative-commons-nc >}}
-        [Creative Commons Attribution-NonCommercial 4.0 International license (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/)
-      right: |
-        Made with {{< fa brands r-project >}} and [Quarto](https://quarto.org/)<br>
-        [View the source at {{< fa brands github >}} GitHub](https://github.com/andrewheiss/truthful-tuna)
+  page-footer:
+    left: |
+      Content {{< fa brands creative-commons >}} 2015–2023 by Andrew Heiss<br>
+      All content licensed under a {{< fa brands creative-commons >}}
+      {{< fa brands creative-commons-by >}} {{< fa brands creative-commons-nc >}}
+      [Creative Commons Attribution-NonCommercial 4.0 International license (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/)
+    right: |
+      Made with {{< fa brands r-project >}} and [Quarto](https://quarto.org/)<br>
+      [View the source at {{< fa brands github >}} GitHub](https://github.com/andrewheiss/truthful-tuna)
 
 format:
   html:
