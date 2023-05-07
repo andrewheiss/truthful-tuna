@@ -47,8 +47,8 @@ website:
       #   file: notebook/general-analysis.qmd
       # - text: "Models"
       #   file: notebook/model-details.qmd
-      - text: "Manuscript"
-        file: notebook/manuscript.qmd
+      - text: "Paper"
+        file: notebook/Paper.qmd
     
     right:
       - icon: github
