@@ -23,16 +23,30 @@ library(sf)
 library(countrycode)
 library(scales)
 library(gt)
+library(skimr)
+library(ggalluvial)
 library(here)
 
 tar_config_set(store = here('_targets'),
                script = here('_targets.R'))
 
-tar_load(c(survey_orgs, survey_countries))
+tar_load(c(survey_orgs, survey_countries, survey_all))
 tar_load(c(world_map))
 
 # Plotting functions
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+set_annotation_fonts()
+
+
+opts_int <- function(x, ...) {
+  x %>% 
+    opt_interactive(use_compact_mode = TRUE, use_highlight = TRUE, ...)
+}
+
+opts_theme <- function(x) {
+  x %>% 
+    opt_table_font(font = "Fira Sans")
+}
 ```
 
 # General respondent details
@@ -86,8 +100,7 @@ survey_orgs %>%
   arrange(desc(Count)) %>% 
   gt() %>% 
   fmt_percent(columns = Proportion, decimals = 1) %>% 
-  opt_interactive(use_compact_mode = TRUE, use_highlight = TRUE) %>% 
-  opt_table_font(font = "Fira Sans")
+  opts_int() %>% opts_theme()
 ```
 
 
@@ -99,9 +112,10 @@ survey_orgs %>%
 df_hq_countries <- survey_orgs %>% 
   group_by(Q2.2_iso3) %>% 
   summarize(num_ngos = n()) %>% 
+  ungroup() %>% 
   mutate(num_ngos_ceiling = ifelse(num_ngos >= 30, 30, num_ngos),
          ngo_presence = ifelse(num_ngos >= 1, "At least one NGO respondent", NA),
-         prop = num_ngos / sum(num_ngos)) %>% 
+         prop = num_ngos / sum(num_ngos, na.rm = TRUE)) %>% 
   mutate(country_name = countrycode(Q2.2_iso3, "iso3c", "country.name")) %>%
   arrange(desc(num_ngos))
 
@@ -115,16 +129,15 @@ df_hq_countries %>%
     prop = "Proportion"
   ) %>% 
   fmt_percent(columns = prop, decimals = 1) %>% 
-  opt_interactive(use_compact_mode = TRUE, use_highlight = TRUE) %>% 
-  opt_table_font(font = "Fira Sans")
+  opts_int() %>% opts_theme()
 ```
 
 ## Number of unique HQ countries
 
-```{r}
+```{r summary-num-hq-countries}
 #| code-fold: show
 df_hq_countries %>% 
-  summarize(total = sum(num_ngos >= 1))
+  summarize(total = sum(num_ngos >= 1, na.rm = TRUE))
 ```
 
 ## Regional distribution of HQ countries
@@ -149,9 +162,8 @@ df_hq_regions %>%
   ) %>% 
   fmt_percent(columns = prop, decimals = 1) %>% 
   cols_align(align = "left", columns = region) %>% 
-  opt_interactive(use_compact_mode = TRUE, use_highlight = TRUE, 
-                  use_pagination = FALSE, use_pagination_info = FALSE) %>% 
-  opt_table_font(font = "Fira Sans")
+  opts_theme() %>% 
+  opts_int(use_pagination = FALSE, use_pagination_info = FALSE)
 ```
 
 ```{r plot-hq-regions, fig.width=6, fig.height=3}
@@ -200,6 +212,160 @@ ggplot() +
 
 # Where do NGOs work?
 
+## How are these NGOs distributed by target country?
+
+```{r tab-target-countries}
+possible_countries <- tibble(ISO3 = unique(as.character(world_map$ISO_A3))) %>% 
+  filter(ISO3 != "-99")
+
+df_work_countries_all <- survey_orgs %>%
+  unnest(Q2.5_iso3) %>%
+  group_by(Q2.5_iso3) %>%
+  summarise(num_ngos = n()) %>%
+  right_join(possible_countries, by = join_by(Q2.5_iso3 == ISO3)) %>% 
+  mutate(prop = num_ngos / sum(num_ngos, na.rm = TRUE),
+         country_name = countrycode(Q2.5_iso3, "iso3c", "country.name",
+                                    custom_match = c("XKX" = "Kosovo")),
+         presence = num_ngos >= 1) %>%
+  arrange(desc(num_ngos))
+
+df_work_countries_answered <- survey_all %>%
+  group_by(Q4.1_iso3) %>%
+  summarise(num = n())
+
+df_work_countries_all %>% 
+  select(country_name, Q2.5_iso3, num_ngos, prop) %>%
+  gt() %>% 
+  cols_label(
+    country_name = "Country name",
+    Q2.5_iso3 = "ISO3",
+    num_ngos = "NGOs",
+    prop = "Proportion"
+  ) %>% 
+  fmt_percent(columns = prop, decimals = 1) %>% 
+  opts_int() %>% opts_theme()
+```
+
+## Number of unique target countries
+
+Respondents indicated working in this many unique countries:
+
+```{r summary-num-target-countries}
+#| code-fold: show
+df_work_countries_all %>% 
+  summarize(total = sum(num_ngos >= 1, na.rm = TRUE))
+```
+
+```{r summary-num-countries-answered}
+df_work_countries_answered %>% 
+  nrow()
+```
+
+## Countries per response
+
+```{r tab-countries-per-response}
+countries_per_response <- survey_orgs %>%
+  unnest(Q2.5_iso3) %>%
+  group_by(clean.id) %>%
+  summarise(num = n())
+
+skim_without_charts(countries_per_response$num) %>% 
+  select(-c(skim_type, skim_variable, complete_rate)) %>% 
+  rename_with(~str_remove(., "numeric\\.")) %>% 
+  gt() %>% 
+  opts_theme() %>% 
+  opt_horizontal_padding(scale = 2)
+```
+
+```{r plot-countries-per-response, fig.width=6, fig.height=3}
+ggplot(countries_per_response, aes(x = num)) +
+  geom_histogram(binwidth = 2, color = "white", linewidth = 0.1) + 
+  labs(x = "Number of countries selected", y = "Frequency") +
+  theme_ingo()
+```
+
+## Flows between countries selected
+
+```{r plot-continents-marked}
+continents_marked <- survey_orgs %>%
+  select(home = Q2.2_iso3, target = Q2.5_iso3) %>%
+  unnest(target) %>% 
+  mutate(across(c(home, target), 
+                list(continent = ~countrycode(., "iso3c", "continent",
+                                              custom_match = c("XKX" = "Europe"))))) %>% 
+  mutate(across(ends_with("_continent"),
+                ~recode(., Oceania = "Asia &\nOceania", Asia = "Asia &\nOceania"))) %>% 
+  group_by(home_continent, target_continent) %>%
+  summarize(times_marked = n()) %>% 
+  ungroup() %>% 
+  mutate(id = 1:n()) %>% 
+  pivot_longer(ends_with("continent"), names_to = "x", values_to = "continent")
+
+ggplot(continents_marked,
+       aes(x = x, y = times_marked, stratum = continent, alluvium = id, fill = continent)) +
+  geom_flow() +
+  geom_stratum(color = "grey30", alpha = 0.5, linewidth = 0.2) +
+  geom_text(stat = "stratum", aes(label = continent, color = continent), lineheight = 0.9,
+            family = "Fira Sans Semibold") +
+  scale_x_discrete(labels = c("Home region", "Target region"),
+                   expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_manual(values = c(clrs$Prism[6], clrs$Prism[8], clrs$Prism[11], clrs$Prism[2]),
+                    guide = "none") +
+  scale_color_manual(values = colorspace::darken(c(clrs$Prism[6], clrs$Prism[8], 
+                                                   clrs$Prism[11], clrs$Prism[2]), 0.5),
+                    guide = "none") +
+  labs(x = NULL, y = NULL,
+       title = "Flows between INGO home and target regions",
+       subtitle = "European NGOs tend to work in Europe; American NGOs go all over the place") +
+  theme_ingo() +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        axis.text.x = element_text(family = "Fira Sans Semibold", size = rel(1.3)),
+        axis.text.y = element_blank())
+```
+
+## Regions worked in
+
+```{r tab-work-regions}
+df_target_regions <- survey_orgs %>%
+  select(target = Q2.5_iso3) %>%
+  unnest(target) %>% 
+  mutate(target = countrycode(target, "iso3c", "continent",
+                              custom_match = c("XKX" = "Europe"))) %>% 
+  mutate(target = recode(target, Oceania = "Asia &\nOceania", Asia = "Asia &\nOceania")) %>% 
+  group_by(target) %>% 
+  summarize(times_marked = n()) %>% 
+  mutate(prop = times_marked / sum(times_marked)) %>% 
+  arrange(times_marked) %>% 
+  mutate(target = fct_inorder(target))
+
+df_target_regions %>% 
+  gt() %>% 
+  cols_label(
+    target = "Region",
+    times_marked = "Times marked",
+    prop = "Proportion"
+  ) %>% 
+  fmt_percent(columns = prop, decimals = 1) %>% 
+  fmt_number(columns = times_marked, decimals = 0) %>% 
+  cols_align(align = "left", columns = target) %>% 
+  opts_theme() %>% 
+  opts_int(use_pagination = FALSE, use_pagination_info = FALSE)
+```
+
+```{r plot-work-regions, fig.width=6, fig.height=3}
+ggplot(df_target_regions, aes(x = times_marked, y = target)) +
+  geom_pointrange(aes(xmin = 0, xmax = times_marked)) +
+  scale_x_continuous(labels = label_comma(),
+                     sec.axis = sec_axis(~ . / sum(df_target_regions$times_marked),
+                                         labels = label_percent())) +
+  labs(x = "Times country in region selected", y = NULL,
+       title = "Region of target countries",
+       subtitle = "Q2.5: Where does your organization work? (summarized by region)") +
+  theme_ingo() + 
+  theme(panel.grid.major.y = element_blank())
+```
 
 
 # What do these NGOs do?
