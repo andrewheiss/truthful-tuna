@@ -48,6 +48,9 @@ list(
   tar_target(survey_countries, clean_survey_countries(survey_countries_file)),
   tar_target(world_map, load_world_map(naturalearth_raw_file)),
   
+  ## Graphics ----
+  tar_target(graphic_functions, lst(theme_ingo, theme_ingo_map, set_annotation_fonts, clrs)),
+  
   ## Manuscript and analysis notebook ----
   tar_quarto(output_nice, path = "manuscript", quiet = FALSE, profile = "nice"),
   tar_quarto(output_ms, path = "manuscript", quiet = FALSE, profile = "ms"),
