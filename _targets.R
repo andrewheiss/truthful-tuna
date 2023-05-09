@@ -38,6 +38,9 @@ list(
   tar_target(survey_countries_file, 
              here_rel("data", "raw-data", "survey_countries_clean.rds"), 
              format = "file"),
+  tar_target(survey_all_file, 
+             here_rel("data", "raw-data", "survey_clean_all.rds"), 
+             format = "file"),
   tar_target(naturalearth_raw_file,
              here_rel("data", "raw-data", "ne_110m_admin_0_countries",
                       "ne_110m_admin_0_countries.shp"),
@@ -46,6 +49,7 @@ list(
   ## Process and clean data ----
   tar_target(survey_orgs, clean_survey_orgs(survey_orgs_file)),
   tar_target(survey_countries, clean_survey_countries(survey_countries_file)),
+  tar_target(survey_all, clean_survey_all(survey_all_file)),
   tar_target(world_map, load_world_map(naturalearth_raw_file)),
   
   ## Graphics ----

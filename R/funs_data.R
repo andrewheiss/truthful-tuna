@@ -1,9 +1,26 @@
-clean_survey_orgs <- function(path) {
-  x <- readRDS(path)
+# Country-based data (*with* the Q4 loop)
+clean_survey_all <- function(path) {
+  x <- readRDS(path) %>% 
+    mutate(small_org = Q3.4.num <= 50,
+           small_org = factor(small_org, levels = c(TRUE, FALSE),
+                              labels = c("0–50 employees", "51+ employees"),
+                              ordered = TRUE)) 
   
   return(x)
 }
 
+# Organization-based data (without the Q4 loop)
+clean_survey_orgs <- function(path) {
+  x <- readRDS(path) %>% 
+    mutate(small_org = Q3.4.num <= 50,
+           small_org = factor(small_org, levels = c(TRUE, FALSE),
+                              labels = c("0–50 employees", "51+ employees"),
+                              ordered = TRUE)) 
+  
+  return(x)
+}
+
+# Country-based data (only the Q4 loop)
 clean_survey_countries <- function(path) {
   x <- readRDS(path) %>% 
     mutate(Q4.4_collapsed =
