@@ -37,7 +37,7 @@ website:
 
   navbar:
     pinned: true
-    background: primary
+    background: "#0F8554"
     search: true
     left:
       - text: "Survey"
