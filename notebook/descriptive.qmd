@@ -1,0 +1,144 @@
+---
+title: "Descriptive stuff"
+format:
+  html:
+    code-fold: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = "center", fig.retina = 3,
+                      fig.width = 6, fig.height = (6 * 0.618),
+                      out.width = "80%", collapse = TRUE,
+                      dev = "ragg_png")
+
+options(digits = 3, width = 120,
+        dplyr.summarise.inform = FALSE,
+        knitr.kable.NA = "")
+```
+
+```{r load-libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(targets)
+library(sf)
+library(scales)
+library(gt)
+library(here)
+
+tar_config_set(store = here('_targets'),
+               script = here('_targets.R'))
+
+tar_load(c(survey_orgs, survey_countries))
+tar_load(c(world_map))
+
+# Plotting functions
+invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+```
+
+# General respondent details
+
+## How many NGOs responded?
+
+```{r summary-n-respondents}
+#| code-fold: show
+nrow(survey_orgs)
+```
+
+## How many respondents answered questions for more than one country?
+
+```{r summary-n-multiple-countries}
+#| code-fold: show
+survey_countries %>% 
+  summarize(more_than_1 = sum(loop.number > 1),
+            prop = more_than_1 / nrow(survey_orgs))
+```
+
+## Who in the organization responded to the survey?
+
+```{r plot-respondents-who, fig.width=6, fig.height=3}
+df_plot_respondents <- survey_orgs %>%
+  group_by(Q2.3) %>%
+  summarise(num = n()) %>%
+  arrange(num) %>% 
+  mutate(question = fct_inorder(Q2.3)) 
+
+df_plot_respondents %>% 
+  ggplot(aes(x = num, y = question)) +
+  geom_col() +
+  scale_x_continuous(expand = c(0, 0),
+                     sec.axis = sec_axis(~ . / sum(df_plot_respondents$num),
+                                         labels = label_percent())) +
+  labs(x = "Respondents", y = NULL,
+       title = "Who filled out the survey?",
+       subtitle = "Q2.3: What is your position in your organization?") +
+  theme_ingo()
+```
+
+Lots of others. Who are the others?
+
+```{r tb-who-responded-others}
+survey_orgs %>%
+  filter(!is.na(Q2.3_TEXT)) %>%
+  mutate(`Position in organization` = str_to_title(Q2.3_TEXT)) %>%
+  group_by(`Position in organization`) %>%
+  summarise(Count = n()) %>%
+  mutate(Proportion = Count / sum(Count)) %>%
+  arrange(desc(Count)) %>% 
+  gt() %>% 
+  fmt_percent(columns = Proportion, decimals = 1) %>% 
+  opt_interactive(use_compact_mode = TRUE, use_highlight = TRUE) %>% 
+  opt_table_font(font = "Fira Sans")
+```
+
+
+# Where are NGOs based?
+
+
+```{r process-map}
+df_hq_countries <- survey_orgs %>% 
+  group_by(Q2.2_iso3) %>% 
+  summarize(num_ngos = n()) %>% 
+  mutate(num_ngos_ceiling = ifelse(num_ngos >= 30, 30, num_ngos),
+         ngo_presence = ifelse(num_ngos >= 1, "At least one NGO respondent", NA))
+
+map_hq <- world_map %>% 
+  left_join(df_hq_countries, by = join_by(ISO_A3 == Q2.2_iso3))
+```
+
+
+```{r plot-map-respondents-gradient}
+ggplot() +
+  geom_sf(data = map_hq, aes(fill = num_ngos_ceiling),
+          linewidth = 0.1, color = "grey30") +
+  scale_fill_binned(low = clrs$Peach[1], high = clrs$Peach[7], na.value = "grey95",
+                    labels = c(1, 10, 20, "30+"), breaks = c(1, 10, 20, 30),
+                    name = "Number of NGOs: ",
+                    guide = guide_colorsteps(barwidth = 7, barheight = 0.4,
+                                             title.vjust = 1)) +
+  coord_sf(crs = "+proj=robin") +
+  theme_ingo_map()
+```
+
+
+```{r plot-map-respondents-binary}
+ggplot() +
+  geom_sf(data = map_hq, aes(fill = ngo_presence),
+          linewidth = 0.1, color = "grey30") +
+  scale_fill_manual(values = c(clrs$Peach[7], "grey95"), 
+                    na.value = "grey95", na.translate = FALSE,
+                    name = NULL) +
+  coord_sf(crs = "+proj=robin") +
+  theme_ingo_map()
+```
+
+
+# Where do NGOs work?
+
+
+
+# What do these NGOs do?
+
+
+
+
+
+

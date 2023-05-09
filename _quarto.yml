@@ -44,8 +44,8 @@ website:
         file: notebook/survey.qmd
       - text: "Data"
         file: notebook/data.qmd
-      # - text: "General analysis"
-      #   file: notebook/general-analysis.qmd
+      - text: "Descriptive analysis"
+        file: notebook/descriptive.qmd
       # - text: "Models"
       #   file: notebook/model-details.qmd
       - text: "Paper"
