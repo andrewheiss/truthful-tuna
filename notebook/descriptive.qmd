@@ -20,6 +20,7 @@ options(digits = 3, width = 120,
 library(tidyverse)
 library(targets)
 library(sf)
+library(countrycode)
 library(scales)
 library(gt)
 library(here)
@@ -75,7 +76,7 @@ df_plot_respondents %>%
 
 Lots of others. Who are the others?
 
-```{r tb-who-responded-others}
+```{r tab-who-responded-others}
 survey_orgs %>%
   filter(!is.na(Q2.3_TEXT)) %>%
   mutate(`Position in organization` = str_to_title(Q2.3_TEXT)) %>%
@@ -92,20 +93,85 @@ survey_orgs %>%
 
 # Where are NGOs based?
 
+## How are these NGOs distributed by HQ?
 
-```{r process-map}
+```{r tab-hq-countries}
 df_hq_countries <- survey_orgs %>% 
   group_by(Q2.2_iso3) %>% 
   summarize(num_ngos = n()) %>% 
   mutate(num_ngos_ceiling = ifelse(num_ngos >= 30, 30, num_ngos),
-         ngo_presence = ifelse(num_ngos >= 1, "At least one NGO respondent", NA))
+         ngo_presence = ifelse(num_ngos >= 1, "At least one NGO respondent", NA),
+         prop = num_ngos / sum(num_ngos)) %>% 
+  mutate(country_name = countrycode(Q2.2_iso3, "iso3c", "country.name")) %>%
+  arrange(desc(num_ngos))
 
-map_hq <- world_map %>% 
-  left_join(df_hq_countries, by = join_by(ISO_A3 == Q2.2_iso3))
+df_hq_countries %>% 
+  select(country_name, Q2.2_iso3, num_ngos, prop) %>%
+  gt() %>% 
+  cols_label(
+    country_name = "Country name",
+    Q2.2_iso3 = "ISO3",
+    num_ngos = "NGOs",
+    prop = "Proportion"
+  ) %>% 
+  fmt_percent(columns = prop, decimals = 1) %>% 
+  opt_interactive(use_compact_mode = TRUE, use_highlight = TRUE) %>% 
+  opt_table_font(font = "Fira Sans")
 ```
 
+## Number of unique HQ countries
+
+```{r}
+#| code-fold: show
+df_hq_countries %>% 
+  summarize(total = sum(num_ngos >= 1))
+```
+
+## Regional distribution of HQ countries
+
+```{r tab-hq-regions}
+df_hq_regions <- df_hq_countries %>%
+  mutate(region = countrycode(Q2.2_iso3, "iso3c", "continent"),
+         region = ifelse(Q2.2_iso3 == "TWN", "Asia", region)) %>%
+  mutate(region = recode(region, Oceania = "Asia &\nOceania", Asia = "Asia &\nOceania")) %>%
+  group_by(region) %>%
+  summarise(num = sum(num_ngos)) %>% ungroup() %>%
+  mutate(prop = num / sum(num)) %>%
+  arrange(desc(num)) %>%
+  mutate(region = fct_rev(fct_inorder(region)))
+
+df_hq_regions %>% 
+  gt() %>% 
+  cols_label(
+    region = "Region",
+    num = "NGOs",
+    prop = "Proportion"
+  ) %>% 
+  fmt_percent(columns = prop, decimals = 1) %>% 
+  cols_align(align = "left", columns = region) %>% 
+  opt_interactive(use_compact_mode = TRUE, use_highlight = TRUE, 
+                  use_pagination = FALSE, use_pagination_info = FALSE) %>% 
+  opt_table_font(font = "Fira Sans")
+```
+
+```{r plot-hq-regions, fig.width=6, fig.height=3}
+ggplot(df_hq_regions, aes(x = num, y = region)) +
+  geom_pointrange(aes(xmin = 0, xmax = num)) +
+  scale_x_continuous(sec.axis = sec_axis(~ . / sum(df_hq_regions$num),
+                                         labels = label_percent())) +
+  labs(x = "Respondents based in region", y = NULL,
+       title = "Region of headquarters",
+       subtitle = "Q2.2: Where is your organization's headquarters? (summarized by region)") +
+  theme_ingo() + 
+  theme(panel.grid.major.y = element_blank())
+```
+
+## Responses per country (30 NGO ceiling)
 
 ```{r plot-map-respondents-gradient}
+map_hq <- world_map %>% 
+  left_join(df_hq_countries, by = join_by(ISO_A3 == Q2.2_iso3))
+
 ggplot() +
   geom_sf(data = map_hq, aes(fill = num_ngos_ceiling),
           linewidth = 0.1, color = "grey30") +
@@ -118,6 +184,7 @@ ggplot() +
   theme_ingo_map()
 ```
 
+## Countries with at least one response
 
 ```{r plot-map-respondents-binary}
 ggplot() +
