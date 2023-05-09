@@ -26,9 +26,28 @@ tar_option_set(packages = c("tidyverse"),
 # https://github.com/r-lib/here/issues/36#issuecomment-530894167)
 here_rel <- function(...) {fs::path_rel(here::here(...))}
 
+# Load R scripts with functions to use in the pipeline
+lapply(list.files("R", full.names = TRUE, recursive = TRUE), source)
 
 # Actual pipeline ---------------------------------------------------------
 list(
+  ## Raw data files ----
+  tar_target(survey_orgs_file, 
+             here_rel("data", "raw-data", "survey_orgs_clean.rds"), 
+             format = "file"),
+  tar_target(survey_countries_file, 
+             here_rel("data", "raw-data", "survey_countries_clean.rds"), 
+             format = "file"),
+  tar_target(naturalearth_raw_file,
+             here_rel("data", "raw-data", "ne_110m_admin_0_countries",
+                      "ne_110m_admin_0_countries.shp"),
+             format = "file"),
+  
+  ## Process and clean data ----
+  tar_target(survey_orgs, clean_survey_orgs(survey_orgs_file)),
+  tar_target(survey_countries, clean_survey_countries(survey_countries_file)),
+  tar_target(world_map, load_world_map(naturalearth_raw_file)),
+  
   ## Manuscript and analysis notebook ----
   tar_quarto(output_nice, path = "manuscript", quiet = FALSE, profile = "nice"),
   tar_quarto(output_ms, path = "manuscript", quiet = FALSE, profile = "ms"),
