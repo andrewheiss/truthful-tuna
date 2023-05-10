@@ -83,14 +83,11 @@ make_activities_models <- function(x) {
     bf(num | trials(total) ~ 0 + Intercept), 
     data = list(num = 5, total = 5),
     family = binomial(link = "identity"),
-    prior = c(prior(beta(5, 5), class = b, ub = 1, lb = 0)),
+    prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
     chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED
   )
   
   df_with_models <- x$df_activities_collapsed %>%
-    select(-total, -prop) %>%
-    group_by(question, potential.contentiousness) %>%
-    mutate(total = sum(num)) %>%
     group_by(question, response) %>% 
     nest() %>% 
     mutate(model = map(data, ~{
