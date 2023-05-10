@@ -16,6 +16,16 @@ options(tidyverse.quiet = TRUE,
 
 set.seed(71215)  # From random.org
 
+# Bayesian stuff
+suppressPackageStartupMessages(library(brms))
+options(mc.cores = 4,
+        brms.backend = "cmdstanr")
+
+BAYES_SEED <- 907680  # From random.org
+CHAINS <- 4
+ITER <- 2000
+WARMUP <- 1000
+
 tar_option_set(packages = c("tidyverse"),
                format = "qs")
 
@@ -54,6 +64,10 @@ list(
   
   ## Graphics ----
   tar_target(graphic_functions, lst(theme_ingo, theme_ingo_map, set_annotation_fonts, clrs)),
+  
+  ## Analysis ----
+  tar_target(summary_activities, make_activities_summary(survey_orgs)),
+  tar_target(models_activities, make_activities_models(summary_activities)),
   
   ## Manuscript and analysis notebook ----
   tar_quarto(output_nice, path = "manuscript", quiet = FALSE, profile = "nice"),

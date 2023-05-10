@@ -32,6 +32,7 @@ tar_config_set(store = here('_targets'),
 
 tar_load(c(survey_orgs, survey_countries, survey_all))
 tar_load(c(world_map))
+tar_load(c(summary_activities, models_activities))
 
 # Plotting functions
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
@@ -370,6 +371,104 @@ ggplot(df_target_regions, aes(x = times_marked, y = target)) +
 
 # What do these NGOs do?
 
+## Which issues do these NGOs work on?
+
+```{r plot-issues-worked-on, fig.width=6, fig.height=4}
+df_issues_most <- survey_orgs %>%
+  group_by(Q3.2.clean, potential.contentiousness) %>%
+  summarise(num = n()) %>%
+  ungroup() %>%
+  arrange(desc(num)) %>%
+  mutate(issue = factor(Q3.2.clean, levels = rev(unique(Q3.2.clean)), ordered = TRUE)) %>%
+  mutate(prop = num / sum(num), cum.prop = cumsum(prop))
+
+ggplot(df_issues_most, aes(x = num, y = issue, color = potential.contentiousness)) +
+  geom_pointrange(aes(xmin = 0, xmax = num)) +
+  scale_x_continuous(sec.axis = sec_axis(~ . / sum(df_issues_most$num),
+                                         labels = label_percent())) +
+  scale_color_manual(values = c(clrs$Prism[2], clrs$Prism[8]), name = NULL) +
+  labs(x = "Organizations", y = NULL) +
+  theme_ingo() + 
+  theme(legend.position = c(1, 0), legend.justification = c(1, 0),
+        legend.direction = "horizontal", panel.grid.major.y = element_blank())
+```
+
+
+### What kinds of activities do these NGOs engage in?
+
+```{r plot-activities, fig.width=7, fig.height=4.5}
+ggplot(summary_activities$df_activities_collapsed, 
+       aes(x = prop, y = fct_rev(response), color = potential.contentiousness)) +
+  geom_pointrange(aes(xmin = 0, xmax = prop), position = position_dodge(width = 0.75),
+                   size = 0.5) +
+  labs(x = "Proportion selected", y = "How often INGO does work") +
+  scale_color_manual(values = c(clrs$Prism[2], clrs$Prism[8]), name = NULL,
+                     guide = guide_legend(reverse = TRUE)) +
+  scale_x_continuous(labels = label_percent()) +
+  facet_wrap(~ question, ncol = 2) +
+  theme_ingo() + 
+  theme(legend.position = c(1, 0), legend.justification = c(1, 0),
+        legend.direction = "vertical", strip.text = element_text(size = rel(0.75)),
+        panel.grid.major.y = element_blank())
+```
+
+```{r tab-activities-contentiousness-diffs}
+#| tbl-cap: Median differences in proportion of high and low contention INGOs selecting frequency of type of work. Probability that the proportion is greater than 0 given in parentheses.
+models_activities %>% 
+  unnest(diffs_summary) %>% 
+  mutate(nice_value = glue::glue(
+    "{diff}<br>({p})",
+    diff = label_number(style_negative = "minus", accuracy = 0.01)(y),
+    p = label_number(accuracy = 0.01)(p_greater_0))
+  ) %>% 
+  ungroup() %>% 
+  select(question, response, nice_value) %>% 
+  pivot_wider(names_from = "response", values_from = "nice_value") %>% 
+  gt() %>%
+  fmt_markdown(columns = 2:4) %>%
+  cols_align(align = "left", columns = question) %>%
+  cols_label(question = "") %>% 
+  opts_theme()
+```
+
+### Challenges and obstacles to mission
+
+```{r analyze-obstacles}
+# df.plot.obstacles.raw <- survey.orgs.clean %>%
+#   filter(!is.na(Q3.12_obstacle)) %>%
+#   mutate(obstacle = str_split(Q3.12_obstacle, ", ")) %>%
+#   unnest(obstacle) %>%
+#   mutate(obstacle = recode(obstacle,
+#     `access to country` = "bureaucratic, legal, and political",
+#     `political context` = "bureaucratic, legal, and political",
+#     `bureaucratic and legal` = "bureaucratic, legal, and political"
+#   )) %>%
+#   group_by(obstacle) %>%
+#   summarise(num = n()) %>%
+#   arrange(desc(num))
+# 
+# df.plot.obstacles.denom <- survey.orgs.clean %>%
+#   filter(!is.na(Q3.12_obstacle)) %>%
+#   nrow()
+# 
+# df.plot.obstacles <- df.plot.obstacles.raw %>%
+#   mutate(prop = num / df.plot.obstacles.denom) %>%
+#   mutate(obstacle = capitalize(obstacle)) %>%
+#   filter(num > 20, obstacle != "Other") %>%
+#   mutate(obstacle = fct_inorder(obstacle))
+# 
+# plot.obstacles <- ggplot(df.plot.obstacles, aes(x=prop, y=fct_rev(obstacle))) +
+#   geom_pointrangeh(aes(xmin=0, xmax=prop)) +
+#   scale_x_continuous(labels=scales::percent) +
+#   labs(x="Proportion of respondents", y=NULL) +
+#   theme_ath() + theme(panel.grid.major.y=element_blank())
+# 
+# plot.obstacles
+# 
+# fig.save.cairo(plot.obstacles,
+#                filename="3-obstacles",
+#                width=4.5, height=2)
+```
 
 
 
