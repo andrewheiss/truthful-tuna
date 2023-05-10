@@ -1,0 +1,87 @@
+---
+title: "General respondent details"
+format:
+  html:
+    code-fold: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = "center", fig.retina = 3,
+                      fig.width = 6, fig.height = (6 * 0.618),
+                      out.width = "80%", collapse = TRUE,
+                      dev = "ragg_png")
+
+options(digits = 3, width = 120,
+        dplyr.summarise.inform = FALSE,
+        knitr.kable.NA = "")
+```
+
+```{r load-libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(targets)
+library(scales)
+library(gt)
+library(here)
+
+tar_config_set(store = here('_targets'),
+               script = here('_targets.R'))
+
+tar_load(c(survey_orgs, survey_countries))
+
+# Plotting functions
+invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+invisible(list2env(tar_read(table_functions), .GlobalEnv))
+```
+
+
+# How many NGOs responded?
+
+```{r summary-n-respondents}
+#| code-fold: show
+nrow(survey_orgs)
+```
+
+# How many respondents answered questions for more than one country?
+
+```{r summary-n-multiple-countries}
+#| code-fold: show
+survey_countries %>% 
+  summarize(more_than_1 = sum(loop.number > 1),
+            prop = more_than_1 / nrow(survey_orgs))
+```
+
+# Who in the organization responded to the survey?
+
+```{r plot-respondents-who, fig.width=6, fig.height=3}
+df_plot_respondents <- survey_orgs %>%
+  group_by(Q2.3) %>%
+  summarise(num = n()) %>%
+  arrange(num) %>% 
+  mutate(question = fct_inorder(Q2.3)) 
+
+df_plot_respondents %>% 
+  ggplot(aes(x = num, y = question)) +
+  geom_col() +
+  scale_x_continuous(expand = c(0, 0),
+                     sec.axis = sec_axis(~ . / sum(df_plot_respondents$num),
+                                         labels = label_percent())) +
+  labs(x = "Respondents", y = NULL,
+       title = "Who filled out the survey?",
+       subtitle = "Q2.3: What is your position in your organization?") +
+  theme_ingo()
+```
+
+Lots of others. Who are the others?
+
+```{r tab-who-responded-others}
+survey_orgs %>%
+  filter(!is.na(Q2.3_TEXT)) %>%
+  mutate(`Position in organization` = str_to_title(Q2.3_TEXT)) %>%
+  group_by(`Position in organization`) %>%
+  summarise(Count = n()) %>%
+  mutate(Proportion = Count / sum(Count)) %>%
+  arrange(desc(Count)) %>% 
+  gt() %>% 
+  fmt_percent(columns = Proportion, decimals = 1) %>% 
+  opts_int() %>% opts_theme()
+```

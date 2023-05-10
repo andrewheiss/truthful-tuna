@@ -44,10 +44,8 @@ website:
         file: notebook/survey.qmd
       - text: "Data"
         file: notebook/data.qmd
-      - text: "Descriptive analysis"
-        file: notebook/descriptive.qmd
-      # - text: "Models"
-      #   file: notebook/model-details.qmd
+      - text: "Analysis"
+        file: notebook/analysis.qmd
       - text: "Paper"
         file: notebook/paper.qmd
       - text: "Appendix"
@@ -57,6 +55,33 @@ website:
       - icon: github
         aria-label: github
         href: https://github.com/andrewheiss/truthful-tuna
+  
+  sidebar:
+    - title: "Data"
+      style: docked
+      background: dark
+      contents:
+        - notebook/data.qmd
+        - notebook/data-final.qmd
+
+    - title: "Analysis"
+      contents:
+        - notebook/analysis.qmd
+        - section: "Descriptive details"
+          contents:
+            - notebook/desc-details.qmd
+            - notebook/desc-work.qmd
+            - notebook/desc-governments.qmd
+            - notebook/desc-restrictions.qmd
+        - section: "Analysis"
+          contents:
+            - notebook/desc-work.qmd
+        - section: "Other details"
+          contents:
+            - notebook/targets.qmd
+            - notebook/environment.qmd
+    
+    - title: "Empty space lol"
     
   page-footer:
     left: |

@@ -36,74 +36,9 @@ tar_load(c(summary_activities, models_activities))
 
 # Plotting functions
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+invisible(list2env(tar_read(table_functions), .GlobalEnv))
 set_annotation_fonts()
-
-
-opts_int <- function(x, ...) {
-  x %>% 
-    opt_interactive(use_compact_mode = TRUE, use_highlight = TRUE, ...)
-}
-
-opts_theme <- function(x) {
-  x %>% 
-    opt_table_font(font = "Fira Sans")
-}
 ```
-
-# General respondent details
-
-## How many NGOs responded?
-
-```{r summary-n-respondents}
-#| code-fold: show
-nrow(survey_orgs)
-```
-
-## How many respondents answered questions for more than one country?
-
-```{r summary-n-multiple-countries}
-#| code-fold: show
-survey_countries %>% 
-  summarize(more_than_1 = sum(loop.number > 1),
-            prop = more_than_1 / nrow(survey_orgs))
-```
-
-## Who in the organization responded to the survey?
-
-```{r plot-respondents-who, fig.width=6, fig.height=3}
-df_plot_respondents <- survey_orgs %>%
-  group_by(Q2.3) %>%
-  summarise(num = n()) %>%
-  arrange(num) %>% 
-  mutate(question = fct_inorder(Q2.3)) 
-
-df_plot_respondents %>% 
-  ggplot(aes(x = num, y = question)) +
-  geom_col() +
-  scale_x_continuous(expand = c(0, 0),
-                     sec.axis = sec_axis(~ . / sum(df_plot_respondents$num),
-                                         labels = label_percent())) +
-  labs(x = "Respondents", y = NULL,
-       title = "Who filled out the survey?",
-       subtitle = "Q2.3: What is your position in your organization?") +
-  theme_ingo()
-```
-
-Lots of others. Who are the others?
-
-```{r tab-who-responded-others}
-survey_orgs %>%
-  filter(!is.na(Q2.3_TEXT)) %>%
-  mutate(`Position in organization` = str_to_title(Q2.3_TEXT)) %>%
-  group_by(`Position in organization`) %>%
-  summarise(Count = n()) %>%
-  mutate(Proportion = Count / sum(Count)) %>%
-  arrange(desc(Count)) %>% 
-  gt() %>% 
-  fmt_percent(columns = Proportion, decimals = 1) %>% 
-  opts_int() %>% opts_theme()
-```
-
 
 # Where are NGOs based?
 
@@ -393,8 +328,7 @@ ggplot(df_issues_most, aes(x = num, y = issue, color = potential.contentiousness
         legend.direction = "horizontal", panel.grid.major.y = element_blank())
 ```
 
-
-### What kinds of activities do these NGOs engage in?
+## What kinds of activities do these NGOs engage in?
 
 ```{r plot-activities, fig.width=7, fig.height=4.5}
 ggplot(summary_activities$df_activities_collapsed, 
@@ -432,7 +366,7 @@ models_activities %>%
   opts_theme()
 ```
 
-### Challenges and obstacles to mission
+## Challenges and obstacles to mission
 
 ```{r plot-obstacles, fig.width=6, fig.height=2}
 df_obstacles_raw <- survey_orgs %>% 

@@ -64,6 +64,7 @@ list(
   
   ## Graphics ----
   tar_target(graphic_functions, lst(theme_ingo, theme_ingo_map, set_annotation_fonts, clrs)),
+  tar_target(table_functions, lst(opts_int, opts_theme)),
   
   ## Analysis ----
   tar_target(summary_activities, make_activities_summary(survey_orgs)),
