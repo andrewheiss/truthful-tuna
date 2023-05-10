@@ -1,5 +1,5 @@
 ---
-title: "Descriptive stuff"
+title: "INGOs and instrumental factors"
 format:
   html:
     code-fold: true
@@ -428,49 +428,40 @@ models_activities %>%
   fmt_markdown(columns = 2:4) %>%
   cols_align(align = "left", columns = question) %>%
   cols_label(question = "") %>% 
+  tab_footnote(footnote = "Values show the differences in proportion of high and low contention INGOs providing each response (high contention proportion − low contention proportion)") %>% 
   opts_theme()
 ```
 
 ### Challenges and obstacles to mission
 
-```{r analyze-obstacles}
-# df.plot.obstacles.raw <- survey.orgs.clean %>%
-#   filter(!is.na(Q3.12_obstacle)) %>%
-#   mutate(obstacle = str_split(Q3.12_obstacle, ", ")) %>%
-#   unnest(obstacle) %>%
-#   mutate(obstacle = recode(obstacle,
-#     `access to country` = "bureaucratic, legal, and political",
-#     `political context` = "bureaucratic, legal, and political",
-#     `bureaucratic and legal` = "bureaucratic, legal, and political"
-#   )) %>%
-#   group_by(obstacle) %>%
-#   summarise(num = n()) %>%
-#   arrange(desc(num))
-# 
-# df.plot.obstacles.denom <- survey.orgs.clean %>%
-#   filter(!is.na(Q3.12_obstacle)) %>%
-#   nrow()
-# 
-# df.plot.obstacles <- df.plot.obstacles.raw %>%
-#   mutate(prop = num / df.plot.obstacles.denom) %>%
-#   mutate(obstacle = capitalize(obstacle)) %>%
-#   filter(num > 20, obstacle != "Other") %>%
-#   mutate(obstacle = fct_inorder(obstacle))
-# 
-# plot.obstacles <- ggplot(df.plot.obstacles, aes(x=prop, y=fct_rev(obstacle))) +
-#   geom_pointrangeh(aes(xmin=0, xmax=prop)) +
-#   scale_x_continuous(labels=scales::percent) +
-#   labs(x="Proportion of respondents", y=NULL) +
-#   theme_ath() + theme(panel.grid.major.y=element_blank())
-# 
-# plot.obstacles
-# 
-# fig.save.cairo(plot.obstacles,
-#                filename="3-obstacles",
-#                width=4.5, height=2)
+```{r plot-obstacles, fig.width=6, fig.height=2}
+df_obstacles_raw <- survey_orgs %>% 
+  filter(!is.na(Q3.12_obstacle)) %>%
+  mutate(obstacle = str_split(Q3.12_obstacle, ", ")) %>%
+  unnest(obstacle) %>%
+  mutate(obstacle = recode(obstacle,
+                           `access to country` = "bureaucratic, legal, and political",
+                           `political context` = "bureaucratic, legal, and political",
+                           `bureaucratic and legal` = "bureaucratic, legal, and political"
+  )) %>%
+  group_by(obstacle) %>%
+  summarise(num = n()) %>%
+  arrange(desc(num))
+
+df_obstacles_denom <- survey_orgs %>%
+  filter(!is.na(Q3.12_obstacle)) %>%
+  nrow()
+
+df_obstacles <- df_obstacles_raw %>% 
+  mutate(prop = num / df_obstacles_denom) %>% 
+  mutate(obstacle = str_to_sentence(obstacle)) %>% 
+  filter(num > 20, obstacle != "Other") %>%
+  mutate(obstacle = fct_inorder(obstacle))
+
+ggplot(df_obstacles, aes(x = prop, y = fct_rev(obstacle))) +
+  geom_pointrange(aes(xmin = 0, xmax = prop)) +
+  scale_x_continuous(labels = label_percent()) +
+  labs(x = "Proportion of respondents", y = NULL) +
+  theme_ingo() + 
+  theme(panel.grid.major.y = element_blank())
 ```
-
-
-
-
-
