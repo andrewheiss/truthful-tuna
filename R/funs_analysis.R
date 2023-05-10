@@ -84,7 +84,7 @@ make_activities_models <- function(x) {
     data = list(num = 5, total = 5),
     family = binomial(link = "identity"),
     prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
-    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
   )
   
   df_with_models <- x$df_activities_collapsed %>%
