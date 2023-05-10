@@ -8,6 +8,9 @@
 /.quarto/
 /.luarc.json
 
+# Ignore _freeze for now
+/_freeze
+
 # Targets stuff
 _targets
 _targets.yaml
