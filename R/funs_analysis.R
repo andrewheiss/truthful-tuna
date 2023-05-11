@@ -2,13 +2,18 @@ suppressPackageStartupMessages(library(tidybayes))
 
 # Functions for extracting draws and calculating pairwise differences ----
 extract_posterior_draws <- function(model, prop = FALSE) {
-  post <- model %>% 
-    epred_draws(newdata = model$data)
-  
   if (prop) {
-    post <- post %>% 
+    post <- model %>% 
+      epred_draws(newdata = model$data) %>% 
       mutate(.epred_count = .epred,
              .epred = .epred_count / total)
+  } else {
+    var_name <- labels(terms(as.formula(model$formula)))
+    
+    # Create a tibble with a column that has the value of a variable with
+    # `"{blah}" := x`, or walrus operator + glue syntax
+    post <- model %>% 
+      epred_draws(newdata = tibble("{var_name}" := unique(model$data[[var_name]])))
   }
   
   return(post)
@@ -28,7 +33,8 @@ extract_diffs_summary <- function(diffs) {
   diffs %>% 
     summarize(post_median = median_qi(.epred, .width = 0.95),
               p_greater_0 = sum(.epred > 0) / n()) %>% 
-    unnest(post_median)
+    unnest(post_median) %>% 
+    mutate(type = "Differences")
 }
 
 
