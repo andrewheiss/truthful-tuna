@@ -12,7 +12,9 @@ tar_config_set(store = here::here('_targets'),
                script = here::here('_targets.R'))
 
 options(tidyverse.quiet = TRUE,
-        dplyr.summarise.inform = FALSE)
+        dplyr.summarise.inform = FALSE,
+        # Treat ordered factors as treatments in models
+        contrasts = rep("contr.treatment", 2))
 
 set.seed(71215)  # From random.org
 
