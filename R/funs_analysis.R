@@ -105,3 +105,23 @@ make_activities_models <- function(x) {
   
   return(df_with_models)
 }
+
+make_strategies_size_models <- function(survey_all) {
+  df_strategies_size <- survey_all %>%
+    mutate(num_strategies = Q4.3_value %>% map_int(length)) %>%
+    filter(!is.na(Q4.3_value), !is.na(small_org))
+  
+  model <- brm(
+    bf(num_strategies ~ 0 + small_org),
+    data = df_strategies_size,
+    family = gaussian(),
+    prior = c(prior(normal(1, 3), class = b, lb = 0)),
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
+  )
+  
+  draws <- extract_posterior_draws(model)
+  diffs <- extract_diffs(model)
+  diffs_summary <- extract_diffs_summary(diffs)
+  
+  return(lst(data = df_strategies_size, model, draws, diffs, diffs_summary))
+}

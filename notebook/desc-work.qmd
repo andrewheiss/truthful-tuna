@@ -1,5 +1,5 @@
 ---
-title: "INGOs and instrumental factors"
+title: "INGOs and their work"
 format:
   html:
     code-fold: true

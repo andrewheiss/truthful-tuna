@@ -71,6 +71,7 @@ website:
           contents:
             - notebook/desc-details.qmd
             - notebook/desc-work.qmd
+            - notebook/desc-instrumental.qmd
             - notebook/desc-governments.qmd
             - notebook/desc-restrictions.qmd
         - section: "Analysis"
