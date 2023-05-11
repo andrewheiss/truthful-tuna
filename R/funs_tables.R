@@ -6,5 +6,6 @@ opts_int <- function(x, ...) {
 opts_theme <- function(x) {
   x %>% 
     opt_table_font(font = "Fira Sans") %>% 
-    tab_options(column_labels.font.weight = "bold")
+    tab_options(column_labels.font.weight = "bold",
+                row_group.font.weight = "bold")
 }
