@@ -1,40 +1,38 @@
-library(marginaleffects)
 suppressPackageStartupMessages(library(tidybayes))
 
-# brms cleans up names for Stan with base::make.names() + removing .s and _s
-# https://github.com/paul-buerkner/brms/issues/442#issuecomment-392520245
-brms_names <- function(x) {
-  gsub("\\.|\\_", "", make.names(x))
+# Functions for extracting draws and calculating pairwise differences ----
+extract_posterior_draws <- function(model, prop = FALSE) {
+  post <- model %>% 
+    epred_draws(newdata = model$data)
+  
+  if (prop) {
+    post <- post %>% 
+      mutate(.epred_count = .epred,
+             .epred = .epred_count / total)
+  }
+  
+  return(post)
 }
 
-extract_clean_draws <- function(model) {
+extract_diffs <- function(model, prop = FALSE) {
+  post <- extract_posterior_draws(model, prop = prop)
+  
   var_name <- labels(terms(as.formula(model$formula)))
-  
-  group_names <- tibble(nice_name = levels(model$data[[var_name]])) %>% 
-    mutate(.variable = paste0("b_", var_name, brms_names(nice_name)))
-  
-  model %>% 
-    gather_draws(`^b_.*`, regex = TRUE) %>% 
+
+  post %>% 
     ungroup() %>% 
-    left_join(group_names, by = join_by(.variable))
-}
-
-extract_diffs <- function(model) {
-  var_name <- labels(terms(as.formula(model$formula)))
-  var_list <- setNames(list("pairwise"), var_name)
-  
-  model %>% 
-    avg_comparisons(variables = var_list, type = "link") %>% 
-    posterior_draws()
+    compare_levels(.epred, by = var_name)
 }
 
 extract_diffs_summary <- function(diffs) {
   diffs %>% 
-    summarize(post_median = median_qi(draw, .width = 0.95),
-              p_greater_0 = sum(draw > 0) / n()) %>% 
+    summarize(post_median = median_qi(.epred, .width = 0.95),
+              p_greater_0 = sum(.epred > 0) / n()) %>% 
     unnest(post_median)
 }
 
+
+# Functions for specific questions ----
 make_activities_summary <- function(x) {
   labels_activities <- tribble(
     ~levels, ~labels, 
@@ -95,8 +93,8 @@ make_activities_models <- function(x) {
              formula = bf(num | trials(total) ~ 0 + potential.contentiousness),
              newdata = .x)
     })) %>% 
-    mutate(draws = map(model, extract_clean_draws)) %>% 
-    mutate(diffs = map(model, extract_diffs)) %>% 
+    mutate(draws = map(model, extract_posterior_draws, prop = TRUE)) %>% 
+    mutate(diffs = map(model, extract_diffs, prop = TRUE)) %>% 
     mutate(diffs_summary = map(diffs, extract_diffs_summary))
   
   return(df_with_models)
