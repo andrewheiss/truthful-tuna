@@ -50,3 +50,9 @@ theme_ingo_map <- function(base_size = 11, base_family = "Fira Sans") {
           panel.border = element_blank(),
           axis.text = element_blank())
 }
+
+build_span <- function(text, style_params) {
+  params <- paste0(names(style_params), ": ", style_params, collapse = "; ")
+  
+  glue::glue('<span style="{params}">{text}</span>')
+}

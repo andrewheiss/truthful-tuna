@@ -65,7 +65,8 @@ list(
   tar_target(world_map, load_world_map(naturalearth_raw_file)),
   
   ## Graphics ----
-  tar_target(graphic_functions, lst(theme_ingo, theme_ingo_map, set_annotation_fonts, clrs)),
+  tar_target(graphic_functions, lst(theme_ingo, theme_ingo_map, 
+                                    set_annotation_fonts, clrs, build_span)),
   tar_target(table_functions, lst(opts_int, opts_theme)),
   
   ## Analysis ----
