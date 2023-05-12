@@ -30,7 +30,7 @@ tar_config_set(store = here('_targets'),
                script = here('_targets.R'))
 
 tar_load(c(survey_orgs, survey_countries, survey_all))
-tar_load(c(strategies_size_models))
+tar_load(c(models_strategies_size))
 
 # Plotting functions
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
@@ -255,7 +255,7 @@ ggplot(df_collaboration_plot, aes(x = prop, y = Q3.6_clean,
 ## Size and number of changes
 
 ```{r plot-strategies-size}
-p1 <- strategies_size_models$draws %>% 
+p1 <- models_strategies_size$draws %>% 
   ggplot(aes(x = .epred, y = fct_rev(small_org), fill = small_org)) +
   stat_halfeye() +
   scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[5]),
@@ -263,7 +263,7 @@ p1 <- strategies_size_models$draws %>%
   labs(x = "Average number of strategies", y = NULL) +
   theme_ingo()
 
-p2 <- strategies_size_models$diffs %>% 
+p2 <- models_strategies_size$diffs %>% 
   ggplot(aes(x = .epred)) +
   stat_halfeye(fill = clrs$Prism[11]) +
   geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
@@ -283,12 +283,12 @@ df_strategies_size <- survey_all %>%
 ```
 
 ```{r tab-strategies-size}
-strategies_size_models$draws %>% 
+models_strategies_size$draws %>% 
   median_qi(.epred) %>% 
   mutate(small_org = as.character(small_org),
          type = "Group medians") %>%
   rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
-  bind_rows(strategies_size_models$diffs_summary) %>% 
+  bind_rows(models_strategies_size$diffs_summary) %>% 
   mutate(across(c(y, ymin, ymax, p_greater_0), 
                 list(nice = ~label_number(accuracy = 0.01)(.)))) %>% 
   mutate(nice_value = glue("{y_nice}<br>({ymin_nice}–{ymax_nice})")) %>% 

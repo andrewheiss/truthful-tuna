@@ -71,7 +71,7 @@ list(
   ## Analysis ----
   tar_target(summary_activities, make_activities_summary(survey_orgs)),
   tar_target(models_activities, make_activities_models(summary_activities)),
-  tar_target(strategies_size_models, make_strategies_size_models(survey_all)),
+  tar_target(models_strategies_size, make_strategies_size_models(survey_all)),
     
   ## Manuscript and analysis notebook ----
   tar_quarto(output_nice, path = "manuscript", quiet = FALSE, profile = "nice"),
