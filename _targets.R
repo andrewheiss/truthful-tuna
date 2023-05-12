@@ -76,6 +76,9 @@ list(
   tar_target(df_govt_positivity_regime, make_govt_positivity_regime(survey_countries)),
   tar_target(models_govt_positivity_regime, 
              make_govt_positivity_regime_models(df_govt_positivity_regime)),
+  tar_target(df_govt_positivity_issue, make_govt_positivity_issue(survey_countries)),
+  tar_target(models_govt_positivity_issue, 
+             make_govt_positivity_issue_models(df_govt_positivity_issue)),
     
   ## Manuscript and analysis notebook ----
   tar_quarto(output_nice, path = "manuscript", quiet = FALSE, profile = "nice"),

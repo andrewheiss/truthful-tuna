@@ -33,7 +33,8 @@ tar_config_set(store = here('_targets'),
                script = here('_targets.R'))
 
 tar_load(c(survey_orgs, survey_countries, survey_all))
-tar_load(c(df_govt_positivity_regime, models_govt_positivity_regime))
+tar_load(c(df_govt_positivity_regime, models_govt_positivity_regime,
+           df_govt_positivity_issue, models_govt_positivity_issue))
 
 # Plotting functions
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
@@ -42,7 +43,9 @@ invisible(list2env(tar_read(table_functions), .GlobalEnv))
 
 # Relationship with host governments
 
-```{r plot-govt-positivity-regime}
+## Regime type
+
+```{r plot-govt-positivity-regime, warning=FALSE}
 ggplot(data = df_govt_positivity_regime) +
   geom_mosaic(aes(x = product(target.regime.type, Q4.11_collapsed), 
                   fill = target.regime.type),
@@ -73,6 +76,14 @@ p1 <- models_govt_positivity_regime$draws %>%
   labs(x = "Posterior proportion", y = "Relationship with target country") +
   theme_ingo()
 
+plot_data <- models_govt_positivity_regime$diffs %>% 
+  mutate(diffs = factor(Q4.11_collapsed, 
+                        levels = c("Positive - Neither", "Neither - Negative", "Positive - Negative")))
+
+diffs_summary <- plot_data %>% 
+  group_by(diffs) %>% 
+  median_qi(.epred, .width = c(0.5, 0.8, 0.95))
+
 p2 <- models_govt_positivity_regime$diffs %>% 
   mutate(diffs = factor(Q4.11_collapsed, 
                         levels = c("Positive - Neither", "Neither - Negative", "Positive - Negative"))) %>% 
@@ -83,8 +94,9 @@ p2 <- models_govt_positivity_regime$diffs %>%
     pattern_spacing = 0.2,
     pattern_size = 0,
     trim = TRUE,
-    linewidth = 0.25
+    linewidth = 0
   ) +
+  geom_pointinterval(data = diffs_summary, aes(x = .epred, xmin = .lower, xmax = .upper)) +
   geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
   facet_wrap(vars(diffs), ncol = 1) +
   scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[12], clrs$Prism[2]),
@@ -92,7 +104,8 @@ p2 <- models_govt_positivity_regime$diffs %>%
   scale_pattern_fill_manual(values = c(clrs$Prism[12], clrs$Prism[7], clrs$Prism[7]),
                             guide = "none") +
   scale_x_continuous(labels = label_number(scale = 100, style_negative = "minus",
-                                           suffix = " pp.")) +
+                                           suffix = " pp."),
+                     breaks = seq(-0.6, 0.2, by = 0.2)) +
   labs(x = "Percentage point differences", y = NULL) +
   theme_ingo() +
   theme(panel.grid.major.y = element_blank(),
@@ -101,10 +114,126 @@ p2 <- models_govt_positivity_regime$diffs %>%
 p1 | p2
 ```
 
+```{r tab-govt-positivity-regime-bayes}
+models_govt_positivity_regime$draws %>% 
+  median_qi(.epred) %>% 
+  mutate(Q4.11_collapsed = as.character(Q4.11_collapsed),
+         type = "Median proportions for NGOs working in autocracies") %>%
+  rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
+  bind_rows(models_govt_positivity_regime$diffs_summary) %>% 
+  mutate(across(c(y, ymin, ymax, p_greater_0), 
+                list(nice = ~label_number(accuracy = 0.01)(.)))) %>% 
+  mutate(nice_value = glue("{y_nice}<br>({ymin_nice} – {ymax_nice})")) %>% 
+  mutate(Q4.11_collapsed = str_replace(Q4.11_collapsed, " - ", " − ")) %>% 
+  select(type, Q4.11_collapsed, nice_value, p_greater_0_nice) %>% 
+  group_by(type) %>% 
+  gt() %>% 
+  cols_label(
+    Q4.11_collapsed = "",
+    nice_value = "Posterior median",
+    p_greater_0_nice = "p > 0"
+  ) %>% 
+  fmt_markdown(nice_value) %>% 
+  sub_missing(p_greater_0_nice) %>% 
+  tab_footnote(footnote = "95% credible intervals shown in parentheses") %>% 
+  opts_theme()
+```
 
-## Regime type
 
 ## Issue contentiousness
+
+```{r plot-govt-positivity-issue, warning=FALSE}
+ggplot(data = df_govt_positivity_issue) +
+  geom_mosaic(aes(x = product(potential.contentiousness, Q4.11_collapsed), 
+                  fill = potential.contentiousness),
+              divider = mosaic("v"), 
+              offset = 0, color = "white", linewidth = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[8]),
+                    guide = "none") +
+  labs(x = "Contentiousness of INGO work",
+       y = "Relationship with target country",
+       title = glue("How would you characterize your organization’s<br>",
+                    "relationship with the government of {country}?",
+                    country = build_span("target_country",
+                                         c("font-family" = "Consolas", 
+                                           "color" = clrs$Prism[1])))) +
+  theme_ingo() +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        plot.title = element_markdown(lineheight = 1.2))
+```
+
+```{r plot-govt-positivity-issue-bayes, fig.height=4}
+p1 <- models_govt_positivity_issue$draws %>% 
+  ggplot(aes(x = .epred, y = Q4.11_collapsed, fill = Q4.11_collapsed)) +
+  stat_halfeye() +
+  scale_x_continuous(labels = label_percent()) +
+  scale_fill_manual(values = c(clrs$Prism[7], clrs$Prism[12], clrs$Prism[2]),
+                    guide = "none") +
+  labs(x = "Posterior proportion", y = "Relationship with target country") +
+  theme_ingo()
+
+plot_data <- models_govt_positivity_issue$diffs %>% 
+  mutate(diffs = factor(Q4.11_collapsed, 
+                        levels = c("Positive - Neither", "Neither - Negative", "Positive - Negative")))
+
+diffs_summary <- plot_data %>% 
+  group_by(diffs) %>% 
+  median_qi(.epred, .width = c(0.5, 0.8, 0.95))
+
+p2 <- plot_data %>% 
+  ggplot(aes(x = .epred, fill = diffs, pattern_fill = diffs)) +
+  geom_density_pattern(
+    # aes(y = after_stat(density * 1e5)),
+    pattern = "stripe",
+    pattern_density = 0.5,
+    pattern_spacing = 0.2,
+    pattern_size = 0,
+    trim = TRUE,
+    linewidth = 0
+  ) +
+  geom_pointinterval(data = diffs_summary, aes(x = .epred, xmin = .lower, xmax = .upper)) +
+  geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
+  facet_wrap(vars(diffs), ncol = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[12], clrs$Prism[2]),
+                    guide = "none") +
+  scale_pattern_fill_manual(values = c(clrs$Prism[12], clrs$Prism[7], clrs$Prism[7]),
+                            guide = "none") +
+  scale_x_continuous(labels = label_number(scale = 100, style_negative = "minus",
+                                           suffix = "\n pp."),
+                     breaks = seq(-0.4, 0.1, by = 0.1)) +
+  labs(x = "Percentage point differences", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_blank())
+
+p1 | p2
+```
+
+```{r tab-govt-positivity-issue-bayes}
+models_govt_positivity_issue$draws %>% 
+  median_qi(.epred) %>% 
+  mutate(Q4.11_collapsed = as.character(Q4.11_collapsed),
+         type = "Median proportions for NGOs working on contentious issues") %>%
+  rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
+  bind_rows(models_govt_positivity_issue$diffs_summary) %>% 
+  mutate(across(c(y, ymin, ymax, p_greater_0), 
+                list(nice = ~label_number(accuracy = 0.01)(.)))) %>% 
+  mutate(nice_value = glue("{y_nice}<br>({ymin_nice} – {ymax_nice})")) %>% 
+  mutate(Q4.11_collapsed = str_replace(Q4.11_collapsed, " - ", " − ")) %>% 
+  select(type, Q4.11_collapsed, nice_value, p_greater_0_nice) %>% 
+  group_by(type) %>% 
+  gt() %>% 
+  cols_label(
+    Q4.11_collapsed = "",
+    nice_value = "Posterior median",
+    p_greater_0_nice = "p > 0"
+  ) %>% 
+  fmt_markdown(nice_value) %>% 
+  sub_missing(p_greater_0_nice) %>% 
+  tab_footnote(footnote = "95% credible intervals shown in parentheses") %>% 
+  opts_theme()
+```
 
 # Experiences with regulations
 
