@@ -26,7 +26,8 @@ extract_diffs <- function(model, prop = FALSE) {
 
   post %>% 
     ungroup() %>% 
-    compare_levels(.epred, by = var_name)
+    compare_levels(.epred, by = var_name,
+                   comparison = "pairwise")
 }
 
 extract_diffs_summary <- function(diffs) {
