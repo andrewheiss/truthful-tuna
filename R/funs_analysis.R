@@ -126,3 +126,36 @@ make_strategies_size_models <- function(survey_all) {
   
   return(lst(data = df_strategies_size, model, draws, diffs, diffs_summary))
 }
+
+make_govt_positivity_regime <- function(x) {
+  df_govt_positivity_regime <- x %>%
+    select(Q4.11_collapsed, target.regime.type) %>%
+    filter(!is.na(Q4.11_collapsed), Q4.11_collapsed != "NULL") %>% 
+    mutate(Q4.11_collapsed = fct_drop(Q4.11_collapsed))
+
+  return(df_govt_positivity_regime)
+}
+
+make_govt_positivity_regime_models <- function(x) {
+  df_govt_positivity_regime_collapsed <- x %>% 
+    group_by(Q4.11_collapsed, target.regime.type) %>%
+    summarize(num = n()) %>% 
+    group_by(Q4.11_collapsed) %>%
+    mutate(total = sum(num)) %>% 
+    filter(target.regime.type == "Autocracy")
+  
+  model <- brm(
+    bf(num | trials(total) ~ 0 + Q4.11_collapsed),
+    data = df_govt_positivity_regime_collapsed,
+    family = binomial(link = "identity"),
+    prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
+  )
+  
+  draws <- extract_posterior_draws(model, prop = TRUE)
+  diffs <- extract_diffs(model, prop = TRUE)
+  diffs_summary <- extract_diffs_summary(diffs)
+  
+  return(lst(data = df_govt_positivity_regime_collapsed, 
+             model, draws, diffs, diffs_summary))
+}

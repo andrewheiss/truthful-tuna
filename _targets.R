@@ -73,6 +73,9 @@ list(
   tar_target(summary_activities, make_activities_summary(survey_orgs)),
   tar_target(models_activities, make_activities_models(summary_activities)),
   tar_target(models_strategies_size, make_strategies_size_models(survey_all)),
+  tar_target(df_govt_positivity_regime, make_govt_positivity_regime(survey_countries)),
+  tar_target(models_govt_positivity_regime, 
+             make_govt_positivity_regime_models(df_govt_positivity_regime)),
     
   ## Manuscript and analysis notebook ----
   tar_quarto(output_nice, path = "manuscript", quiet = FALSE, profile = "nice"),

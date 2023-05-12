@@ -15,3 +15,108 @@ options(digits = 3, width = 120,
         dplyr.summarise.inform = FALSE,
         knitr.kable.NA = "")
 ```
+
+```{r load-libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(targets)
+library(scales)
+library(glue)
+library(gt)
+library(ggmosaic)
+library(ggtext)
+library(patchwork)
+library(tidybayes)
+library(here)
+library(ggpattern)
+
+tar_config_set(store = here('_targets'),
+               script = here('_targets.R'))
+
+tar_load(c(survey_orgs, survey_countries, survey_all))
+tar_load(c(df_govt_positivity_regime, models_govt_positivity_regime))
+
+# Plotting functions
+invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+invisible(list2env(tar_read(table_functions), .GlobalEnv))
+```
+
+# Relationship with host governments
+
+```{r plot-govt-positivity-regime}
+ggplot(data = df_govt_positivity_regime) +
+  geom_mosaic(aes(x = product(target.regime.type, Q4.11_collapsed), 
+                  fill = target.regime.type),
+              divider = mosaic("v"), 
+              offset = 0, color = "white", linewidth = 1) +
+  scale_fill_manual(values = c(clrs$Prism[4], clrs$Prism[6]),
+                    guide = "none") +
+  labs(x = "Target country regime type",
+       y = "Relationship with target country",
+       title = glue("How would you characterize your organization’s<br>",
+                    "relationship with the government of {country}?",
+                    country = build_span("target_country",
+                                         c("font-family" = "Consolas", 
+                                           "color" = clrs$Prism[1])))) +
+  theme_ingo() +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        plot.title = element_markdown(lineheight = 1.2))
+```
+
+```{r plot-govt-positivity-regime-bayes, fig.height=4}
+p1 <- models_govt_positivity_regime$draws %>% 
+  ggplot(aes(x = .epred, y = Q4.11_collapsed, fill = Q4.11_collapsed)) +
+  stat_halfeye() +
+  scale_x_continuous(labels = label_percent()) +
+  scale_fill_manual(values = c(clrs$Prism[7], clrs$Prism[12], clrs$Prism[2]),
+                    guide = "none") +
+  labs(x = "Posterior proportion", y = "Relationship with target country") +
+  theme_ingo()
+
+p2 <- models_govt_positivity_regime$diffs %>% 
+  mutate(diffs = factor(Q4.11_collapsed, 
+                        levels = c("Positive - Neither", "Neither - Negative", "Positive - Negative"))) %>% 
+  ggplot(aes(x = .epred, fill = diffs, pattern_fill = diffs)) +
+  geom_density_pattern(
+    pattern = "stripe",
+    pattern_density = 0.5,
+    pattern_spacing = 0.2,
+    pattern_size = 0,
+    trim = TRUE,
+    linewidth = 0.25
+  ) +
+  geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
+  facet_wrap(vars(diffs), ncol = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[12], clrs$Prism[2]),
+                    guide = "none") +
+  scale_pattern_fill_manual(values = c(clrs$Prism[12], clrs$Prism[7], clrs$Prism[7]),
+                            guide = "none") +
+  scale_x_continuous(labels = label_number(scale = 100, style_negative = "minus",
+                                           suffix = " pp.")) +
+  labs(x = "Percentage point differences", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_blank())
+
+p1 | p2
+```
+
+
+## Regime type
+
+## Issue contentiousness
+
+# Experiences with regulations
+
+## Familiarity with regulations
+
+## Frequency of changes
+
+## How NGOs find out about changes
+
+## Are NGOs registered?
+
+
+# Government involvement in INGO activity
+
+## Contact and reporting frequency
