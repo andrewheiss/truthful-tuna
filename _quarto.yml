@@ -41,7 +41,7 @@ website:
     search: true
     left:
       - text: "Survey"
-        file: notebook/survey.qmd
+        file: notebook/survey-static.qmd
       - text: "Data"
         file: notebook/data.qmd
       - text: "Analysis"
