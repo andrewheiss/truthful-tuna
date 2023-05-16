@@ -1,0 +1,148 @@
+---
+title: "Survey technical details"
+---
+
+Sending out invitations to ≈30,000 e-mail addresses—many of which are dead and defunct—is tricky. That's a high volume of e-mail and having too many bounces runs the risk of blacklisting my domain.
+
+I used a combination of a custom domain + ~~SendGrid~~ Mailgun + Zoho + fancy branding + Litmus to send out a lot of e-mail, maintain a good sending reputation, and hopefully boost response rates.
+
+Here's what I did.
+
+
+# Custom domain
+
+I debated whether to send all the e-mails using my .edu e-mail address or something else. Using the .edu address has a built-in psychological benefit—messages probably look more legitimate and research based than blah@gmail.com. However, sending out such a high volume of e-mail from Duke's server is hard/impossible, as I discovered when running a survey of human trafficking NGOs in 2013. I also didn't want to flood my inbox with bounce notifications and survey responses.
+
+Rather than make a Gmail account, which doesn't look as professional, I purchased the [ingoresearch.org](https://www.ingoresearch.org/) domain and created a survey@ingoresearch.org account. It used to be possible to use Google Apps for e-mail on custom domains, but they stopped offering that service in 2012. Instead, I used [Zoho](https://www.zoho.com/), which offers similar services.
+
+- [Generic DNS settings for MX records](https://www.zoho.com/mail/help/adminconsole/configure-email-delivery.html)
+- [SPF record](https://www.zoho.com/mail/help/adminconsole/spf-configuration.html)
+- [DomainKey/DKIM public key](https://www.zoho.com/mail/help/adminconsole/domain-keys-configuration.html)
+
+
+# SendGrid
+
+I ran the human trafficking NGO survey using Excel (for tracking e-mails and responses), Word (for mail merge), and Outlook (for sending mail through my adviser's account). That survey only went out to ≈1,500 NGOs, and it was a technical nightmare.
+
+So I did what all the cool kids do and used an e-mail delivery service. [GitHub's educational pack](https://education.github.com/pack) included a free student plan for [SendGrid](https://sendgrid.com/), so I made an account there and played around with it.
+
+SendGrid is awesome.
+
+Their API is powerful and lets you send lots of e-mail quickly. The [Python wrapper for the API](https://github.com/sendgrid/sendgrid-python) is easy to use and intuitive ([see?](https://github.com/andrewheiss/Dissertation/blob/master/Data/Survey/send_mail.py)). They have a nice templating engine and analytic and tracking features. Note to self: use SendGrid for all future survey administration.
+
+To boost its reputation, I [whitelabeled](https://sendgrid.com/docs/User_Guide/Settings/Whitelabel/index.html) the ingoresearch.org domain and all outgoing links. Despite all this DNS whitelabeling, my reputation took a huge hit after the first round of 2,000 e-mails, likely because there were so many bounces (i.e. it dropped from 100% to 76% (!)). I also enabled [List-Unsubscribe](https://support.sendgrid.com/hc/en-us/articles/204379093-How-do-I-add-a-list-unsubscribe-header-to-my-emails-) in the SendGrid settings.
+
+My [SendGrid reputation](https://sendgrid.com/docs/Classroom/Deliver/Address_Lists/list_scrubbing_guide.html) dropped below 75% after sending ≈8,000 e-mails, and my account was permanently suspended. Right before this happened (spurred on by fears that something like this would happen), I caved and spent $100 to clean and scrub my list of e-mails using [Email Hippo](https://www.emailhippo.com/en-US), which categorized e-mails as "Ok", "Unverifiable", and "Bad." Roughly 30% of the e-mail addresses I submitted were bad and would have bounced immediately, so I removed them. About 25% were unverifiable, and 45% were clean.
+
+After getting kicked off of SendGrid, I switched to [Mailgun](https://mailgun.com), which offers similar services ([and is cheaper!](https://www.mailgun.com/pricing)). I started sending invitations to all unverifiable and clean addresses, assuming that "unverifiable" just meant that Email Hippo temporarily couldn't ping the address and that it was really okay. E-mails initially went really well, with only 12% of the messages getting dropped, and 4.8% bouncing. However, even though I thought this was great and low, Mailgun did not and I received a warning message that my account was on the verge of suspension.
+
+I removed all the unverifiable addresses and sent invitations only to clean organizations, which was magic—I got a bounce rate of ≈1.5%, which lowered my account's overall bounce rate to 2.7% and delivery rate to 94%. I need to scrub the list of unverifiable addresses one last time to weed out any organizations that were temporarily unavailable from the organizations that are actually dead.
+
+[MailTester.com](https://www.mail-tester.com) is incredibly useful for checking for issues with e-mails. For instance, it found that my e-mails were incredibly heavy, since the HTML template was heavily commented. I minified the CSS to resolve that issue.
+
+All survey invitations come from survey@ingoresearch.org and all bounces are forwarded to bounces@ingoresearch.org.
+
+I [randomly assigned each e-mail address](https://github.com/andrewheiss/Dissertation/blob/master/Data/Survey/master_ingo_list.R) to a group of roughly 1,000 organizations and ran the sending script on each group.
+
+# Branding
+
+Finally, based on previous research and experiences in big online surveys [@Buthe:2011; @EdwardsRobertsClarke:2009; @HeissKelley:2016], I created a simple unified brand for the survey (mostly just a logo and color scheme.)
+
+I used two Creative Commons-licensed images from The Noun Project ([World, by Shmidt Sergey](https://thenounproject.com/term/world/149710/); and [World, by Dalpat Prajapati](https://thenounproject.com/term/world/64588/)). The UN has a set of unified visual icons in the public domain, but [the one for NGOs is kind of uninspiring](https://thenounproject.com/term/ngo-office/4403/).
+
+## Fonts
+
+- [Source Sans Pro](https://github.com/adobe-fonts/source-sans-pro) Light, Semibold, and Black
+
+## Colors
+
+- <span style="padding: 0.2em; background-color: #00529b; color: #ffffff;">Blue</span>: `#00529b`
+- <span style="padding: 0.2em; background-color: #FF6719; color: #ffffff;">Orange</span>: `#FF6719`
+
+## Full logo
+
+![](img/ingo-survey-logo-big.png){width=80%}
+
+## Small logo
+
+![](img/ingo-survey-logo.png){width=200}
+
+
+## E-mail template
+
+[HTML e-mail templates](http://webdesign.tutsplus.com/tutorials/what-you-should-know-about-html-email--webdesign-12908) are a [massive pain](http://genius.com/7982100). I used [Litmus](https://litmus.com/) to (1) adapt a pre-built template styled off of MailChimp's default template and (2) preview it in different e-mail programs. I discovered [Foundation for Emails](http://foundation.zurb.com/emails.html) after I had already made and tested the template—next time I do this, I'll use their templating system first.
+
+[View all the e-mail invitations.](/project/diss-ingos-in-autocracies/survey-invitations/)
+
+![](img/ingo-survey-email.png)
+
+
+# UX issues
+
+Huge dropdown menus are a big UX problem, but smart people have invented [the ideal autocomplete country selector](http://baymard.com/labs/country-selector).
+
+However, Qualtrics doesn't allow for complex forms with `data-alternative-spellings` and other custom attributes, so I can't use that cool system. I can use [generic jQuery UI autocomplete functions, though, and include a list of countries in Javascript](https://stackoverflow.com/questions/28952275/unsolved-adding-autocomplete-with-javascript-to-qualtrics).
+
+In the header for the overall survey (under "Look and Feel"), add this:
+
+```html
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/jquery-ui.min.js"></script>
+<script>
+var $j = jQuery.noConflict();  
+</script>
+```
+
+Then in the question itself, remove the `Qualtrics.SurveyEngine.addOnload(function()` and add:
+
+```javascript
+$j(function() {
+    var availableTags = [
+        "Afghanistan",
+        "Albania",
+        "Algeria",
+        "..."
+    ];
+    $j( ".InputText" ).autocomplete({
+        source: availableTags
+    });
+});
+```
+
+*[Get the full list of countries here](/notebook/survey-countries.qmd)*
+
+Finally, the submenu needs some styling. Add this through the "Look and Feel" section:
+
+```css
+.ui-autocomplete {
+    font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+    padding: 0;
+    list-style: none;
+    background-color: #fff;
+    width: 218px;
+    border: 1px solid #B0BECA;
+    max-height: 350px;
+    overflow-x: hidden;
+}
+
+.ui-autocomplete .ui-menu-item {
+    border-top: 1px solid #B0BECA;
+    display: block;
+    padding: 4px 6px;
+    color: #353D44;
+    cursor: pointer;
+}
+
+.ui-autocomplete .ui-menu-item:first-child {
+    border-top: none;
+}
+
+.ui-autocomplete .ui-menu-item.ui-state-focus {
+    background-color: #D5E5F4;
+    color: #161A1C;
+}
+```
+
+# References

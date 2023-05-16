@@ -45,6 +45,11 @@ $headings-font-weight:        700 !default;
 
 /*-- scss:rules --*/
 
+// Stop ALL CAPS in table headers
+thead th {
+  text-transform: none;
+}
+
 // Fix line height in sidebar
 .sidebar-navigation .sidebar-section .sidebar-item,
 .sidebar-navigation .sidebar-item {

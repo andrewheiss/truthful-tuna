@@ -63,6 +63,23 @@ website:
       contents:
         - notebook/data.qmd
         - notebook/data-final.qmd
+    
+    - title: "Survey"
+      contents:
+        - section: "Survey questions"
+          contents:
+            - notebook/survey-static.qmd
+            - notebook/survey-questions.qmd
+        - section: "Survey details"
+          contents:
+            - text: "Invitations"
+              file: notebook/survey-invitations.qmd
+            - text: "Technical details"
+              file: notebook/survey-technical-details.qmd
+            - text: "Completion rates"
+              file: notebook/survey-completion-rates.qmd
+            - test: "Countries"
+              file: notebook/survey-countries.qmd
 
     - title: "Analysis"
       contents:
