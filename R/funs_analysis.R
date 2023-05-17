@@ -87,7 +87,7 @@ make_activities_models <- function(x) {
   initial_model <- brm(
     bf(num | trials(total) ~ 0 + Intercept), 
     data = list(num = 5, total = 5),
-    family = binomial(link = "identity"),
+    family = stats::binomial(link = "identity"),
     prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
     chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
   )
@@ -147,7 +147,7 @@ make_govt_positivity_regime_models <- function(x) {
   model <- brm(
     bf(num | trials(total) ~ 0 + Q4.11_collapsed),
     data = df_govt_positivity_regime_collapsed,
-    family = binomial(link = "identity"),
+    family = stats::binomial(link = "identity"),
     prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
     chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
   )
@@ -180,7 +180,7 @@ make_govt_positivity_issue_models <- function(x) {
   model <- brm(
     bf(num | trials(total) ~ 0 + Q4.11_collapsed),
     data = df_govt_positivity_issue_collapsed,
-    family = binomial(link = "identity"),
+    family = stats::binomial(link = "identity"),
     prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
     chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
   )
