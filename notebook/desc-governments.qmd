@@ -33,8 +33,15 @@ tar_config_set(store = here('_targets'),
                script = here('_targets.R'))
 
 tar_load(c(survey_orgs, survey_countries, survey_all))
-tar_load(c(df_govt_positivity_regime, models_govt_positivity_regime,
-           df_govt_positivity_issue, models_govt_positivity_issue))
+tar_load(c(
+  df_govt_positivity_regime, models_govt_positivity_regime,
+  df_govt_positivity_issue, models_govt_positivity_issue,
+  df_familiarity_regime, models_familiarity_regime,
+  df_familiarity_issue, models_familiarity_issue,
+  df_frequency_regime, models_frequency_regime,
+  df_registration_regime, models_registration_regime,
+  df_registration_issue, models_registration_issue
+))
 
 # Plotting functions
 invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
@@ -74,6 +81,7 @@ p1 <- models_govt_positivity_regime$draws %>%
   scale_fill_manual(values = c(clrs$Prism[7], clrs$Prism[12], clrs$Prism[2]),
                     guide = "none") +
   labs(x = "Posterior proportion", y = "Relationship with target country") +
+  facet_wrap(vars("INGOs working in autocracies")) +
   theme_ingo()
 
 plot_data <- models_govt_positivity_regime$diffs %>% 
@@ -118,7 +126,7 @@ p1 | p2
 models_govt_positivity_regime$draws %>% 
   median_qi(.epred) %>% 
   mutate(Q4.11_collapsed = as.character(Q4.11_collapsed),
-         type = "Median proportions for NGOs working in autocracies") %>%
+         type = "Median proportions for INGOs working in autocracies") %>%
   rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
   bind_rows(models_govt_positivity_regime$diffs_summary) %>% 
   mutate(across(c(y, ymin, ymax, p_greater_0), 
@@ -171,6 +179,7 @@ p1 <- models_govt_positivity_issue$draws %>%
   scale_fill_manual(values = c(clrs$Prism[7], clrs$Prism[12], clrs$Prism[2]),
                     guide = "none") +
   labs(x = "Posterior proportion", y = "Relationship with target country") +
+  facet_wrap(vars("INGOs with contentious issues")) +
   theme_ingo()
 
 plot_data <- models_govt_positivity_issue$diffs %>% 
@@ -239,13 +248,654 @@ models_govt_positivity_issue$draws %>%
 
 ## Familiarity with regulations
 
+### Regime type
+
+```{r plot-familiarity-regime, warning=FALSE}
+ggplot(data = df_familiarity_regime) +
+  geom_mosaic(
+    aes(
+      x = product(target.regime.type, Q4.13_collapsed),
+      fill = target.regime.type
+    ),
+    divider = mosaic("v"),
+    offset = 0, color = "white", linewidth = 1
+  ) +
+  scale_fill_manual(
+    values = c(clrs$Prism[4], clrs$Prism[6]),
+    guide = "none"
+  ) +
+  labs(
+    x = "Target country regime type",
+    y = "Familiarity with regulations"
+  ) +
+  theme_ingo() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    plot.title = element_markdown(lineheight = 1.2)
+  )
+```
+
+```{r plot-familiarity-regime-bayes, fig.height=4}
+p1 <- models_familiarity_regime$draws %>%
+  ggplot(aes(x = .epred, y = Q4.13_collapsed, fill = Q4.13_collapsed)) +
+  stat_halfeye() +
+  scale_x_continuous(labels = label_percent()) +
+  scale_fill_manual(
+    values = c(clrs$Prism[7], clrs$Prism[12], clrs$Prism[2]),
+    guide = "none"
+  ) +
+  labs(x = "Posterior proportion", y = "Familiarity with regulations") +
+  facet_wrap(vars("INGOs working in autocracies")) +
+  theme_ingo()
+
+plot_data <- models_familiarity_regime$diffs %>%
+  mutate(diffs = factor(Q4.13_collapsed,
+    levels = c(
+      "Not familiar at all - Somewhat familiar",
+      "Somewhat familiar - Very familiar",
+      "Not familiar at all - Very familiar"
+    )
+  ))
+
+diffs_summary <- plot_data %>% 
+  group_by(diffs) %>% 
+  median_qi(.epred, .width = c(0.5, 0.8, 0.95))
+
+p2 <- models_familiarity_regime$diffs %>% 
+  mutate(diffs = factor(Q4.13_collapsed,
+    levels = c(
+      "Not familiar at all - Somewhat familiar",
+      "Somewhat familiar - Very familiar",
+      "Not familiar at all - Very familiar"
+    )
+  )) %>%  
+  ggplot(aes(x = .epred, fill = diffs, pattern_fill = diffs)) +
+  geom_density_pattern(
+    pattern = "stripe",
+    pattern_density = 0.5,
+    pattern_spacing = 0.2,
+    pattern_size = 0,
+    trim = TRUE,
+    linewidth = 0
+  ) +
+  geom_pointinterval(data = diffs_summary, aes(x = .epred, xmin = .lower, xmax = .upper)) +
+  geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
+  facet_wrap(vars(diffs), ncol = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[12], clrs$Prism[2]),
+                    guide = "none") +
+  scale_pattern_fill_manual(values = c(clrs$Prism[12], clrs$Prism[7], clrs$Prism[7]),
+                            guide = "none") +
+  scale_x_continuous(labels = label_number(scale = 100, style_negative = "minus",
+                                           suffix = " pp."),
+                     breaks = seq(-0.6, 0.2, by = 0.2)) +
+  labs(x = "Percentage point differences", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_blank())
+
+p1 | p2
+```
+
+```{r tab-familiarity-regime-bayes}
+models_familiarity_regime$draws %>% 
+  median_qi(.epred) %>% 
+  mutate(Q4.13_collapsed = as.character(Q4.13_collapsed),
+         type = "Median proportions for INGOs working in autocracies") %>%
+  rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
+  bind_rows(models_familiarity_regime$diffs_summary) %>% 
+  mutate(across(c(y, ymin, ymax, p_greater_0), 
+                list(nice = ~label_number(accuracy = 0.01)(.)))) %>% 
+  mutate(nice_value = glue("{y_nice}<br>({ymin_nice} – {ymax_nice})")) %>% 
+  mutate(Q4.13_collapsed = str_replace(Q4.13_collapsed, " - ", " − ")) %>% 
+  select(type, Q4.13_collapsed, nice_value, p_greater_0_nice) %>% 
+  group_by(type) %>% 
+  gt() %>% 
+  cols_label(
+    Q4.13_collapsed = "",
+    nice_value = "Posterior median",
+    p_greater_0_nice = "p > 0"
+  ) %>% 
+  fmt_markdown(nice_value) %>% 
+  sub_missing(p_greater_0_nice) %>% 
+  tab_footnote(footnote = "95% credible intervals shown in parentheses") %>% 
+  opts_theme()
+```
+
+### Issue contentiousness
+
+```{r plot-familiarity-issue, warning=FALSE}
+ggplot(data = df_familiarity_issue) +
+  geom_mosaic(aes(x = product(potential.contentiousness, Q4.13_collapsed), 
+                  fill = potential.contentiousness),
+              divider = mosaic("v"), 
+              offset = 0, color = "white", linewidth = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[8]),
+                    guide = "none") +
+  labs(x = "Contentiousness of INGO work",
+       y = "Familiarity with regulations") +
+  theme_ingo() +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        plot.title = element_markdown(lineheight = 1.2))
+```
+
+```{r plot-familiarity-issue-bayes, fig.height=4}
+p1 <- models_familiarity_issue$draws %>% 
+  ggplot(aes(x = .epred, y = Q4.13_collapsed, fill = Q4.13_collapsed)) +
+  stat_halfeye() +
+  scale_x_continuous(labels = label_percent()) +
+  scale_fill_manual(values = c(clrs$Prism[7], clrs$Prism[12], clrs$Prism[2]),
+                    guide = "none") +
+  labs(x = "Posterior proportion", y = "Familiarity with regulations") +
+  facet_wrap(vars("INGOs with contentious issues")) +
+  theme_ingo()
+
+plot_data <- models_familiarity_issue$diffs %>% 
+  mutate(diffs = factor(Q4.13_collapsed,
+    levels = c(
+      "Not familiar at all - Somewhat familiar",
+      "Somewhat familiar - Very familiar",
+      "Not familiar at all - Very familiar"
+    )
+  ))
+
+diffs_summary <- plot_data %>% 
+  group_by(diffs) %>% 
+  median_qi(.epred, .width = c(0.5, 0.8, 0.95))
+
+p2 <- plot_data %>% 
+  ggplot(aes(x = .epred, fill = diffs, pattern_fill = diffs)) +
+  geom_density_pattern(
+    # aes(y = after_stat(density * 1e5)),
+    pattern = "stripe",
+    pattern_density = 0.5,
+    pattern_spacing = 0.2,
+    pattern_size = 0,
+    trim = TRUE,
+    linewidth = 0
+  ) +
+  geom_pointinterval(data = diffs_summary, aes(x = .epred, xmin = .lower, xmax = .upper)) +
+  geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
+  facet_wrap(vars(diffs), ncol = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[12], clrs$Prism[2]),
+                    guide = "none") +
+  scale_pattern_fill_manual(values = c(clrs$Prism[12], clrs$Prism[7], clrs$Prism[7]),
+                            guide = "none") +
+  scale_x_continuous(labels = label_number(scale = 100, style_negative = "minus",
+                                           suffix = "\n pp."),
+                     breaks = seq(-0.4, 0.1, by = 0.1)) +
+  labs(x = "Percentage point differences", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_blank())
+
+p1 | p2
+```
+
+```{r tab-familiarity-issue-bayes}
+models_familiarity_issue$draws %>% 
+  median_qi(.epred) %>% 
+  mutate(Q4.13_collapsed = as.character(Q4.13_collapsed),
+         type = "Median proportions for NGOs working on contentious issues") %>%
+  rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
+  bind_rows(models_familiarity_issue$diffs_summary) %>% 
+  mutate(across(c(y, ymin, ymax, p_greater_0), 
+                list(nice = ~label_number(accuracy = 0.01)(.)))) %>% 
+  mutate(nice_value = glue("{y_nice}<br>({ymin_nice} – {ymax_nice})")) %>% 
+  mutate(Q4.13_collapsed = str_replace(Q4.13_collapsed, " - ", " − ")) %>% 
+  select(type, Q4.13_collapsed, nice_value, p_greater_0_nice) %>% 
+  group_by(type) %>% 
+  gt() %>% 
+  cols_label(
+    Q4.13_collapsed = "",
+    nice_value = "Posterior median",
+    p_greater_0_nice = "p > 0"
+  ) %>% 
+  fmt_markdown(nice_value) %>% 
+  sub_missing(p_greater_0_nice) %>% 
+  tab_footnote(footnote = "95% credible intervals shown in parentheses") %>% 
+  opts_theme()
+```
+
 ## Frequency of changes
+
+```{r plot-frequency-regime, warning=FALSE}
+ggplot(data = df_frequency_regime) +
+  geom_mosaic(
+    aes(
+      x = product(target.regime.type, Q4.14_collapsed),
+      fill = target.regime.type
+    ),
+    divider = mosaic("v"),
+    offset = 0, color = "white", linewidth = 1
+  ) +
+  scale_fill_manual(
+    values = c(clrs$Prism[4], clrs$Prism[6]),
+    guide = "none"
+  ) +
+  labs(
+    x = "Target country regime type",
+    y = "Frequency of changes in regulations"
+  ) +
+  theme_ingo() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    plot.title = element_markdown(lineheight = 1.2)
+  )
+```
+
+```{r plot-frequency-regime-bayes, fig.height=4}
+p1 <- models_frequency_regime$draws %>%
+  ggplot(aes(x = .epred, y = Q4.14_collapsed, fill = Q4.14_collapsed)) +
+  stat_halfeye() +
+  scale_x_continuous(labels = label_percent()) +
+  scale_fill_manual(
+    values = c(clrs$Prism[7], clrs$Prism[12], clrs$Prism[2]),
+    guide = "none"
+  ) +
+  labs(x = "Posterior proportion", y = "Frequency of changes in regulations") +
+  facet_wrap(vars("INGOs working in autocracies")) +
+  theme_ingo()
+
+plot_data <- models_frequency_regime$diffs %>%
+  mutate(diffs = factor(Q4.14_collapsed,
+    levels = c(
+      "Rarely or never - Once every few years",
+      "Once every few years - At least once a year",
+      "Rarely or never - At least once a year"
+    )
+  ))
+
+diffs_summary <- plot_data %>% 
+  group_by(diffs) %>% 
+  median_qi(.epred, .width = c(0.5, 0.8, 0.95))
+
+p2 <- models_frequency_regime$diffs %>% 
+  mutate(diffs = factor(Q4.14_collapsed,
+    levels = c(
+      "Rarely or never - Once every few years",
+      "Once every few years - At least once a year",
+      "Rarely or never - At least once a year"
+    )
+  )) %>% 
+  ggplot(aes(x = .epred, fill = diffs, pattern_fill = diffs)) +
+  geom_density_pattern(
+    pattern = "stripe",
+    pattern_density = 0.5,
+    pattern_spacing = 0.2,
+    pattern_size = 0,
+    trim = TRUE,
+    linewidth = 0
+  ) +
+  geom_pointinterval(data = diffs_summary, aes(x = .epred, xmin = .lower, xmax = .upper)) +
+  geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
+  facet_wrap(vars(diffs), ncol = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[12], clrs$Prism[2]),
+                    guide = "none") +
+  scale_pattern_fill_manual(values = c(clrs$Prism[12], clrs$Prism[7], clrs$Prism[7]),
+                            guide = "none") +
+  scale_x_continuous(labels = label_number(scale = 100, style_negative = "minus",
+                                           suffix = " pp."),
+                     breaks = seq(-0.6, 0.2, by = 0.2)) +
+  labs(x = "Percentage point differences", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_blank())
+
+p1 | p2
+```
+
+```{r tab-frequency-regime-bayes}
+models_frequency_regime$draws %>% 
+  median_qi(.epred) %>% 
+  mutate(Q4.14_collapsed = as.character(Q4.14_collapsed),
+         type = "Median proportions for INGOs working in autocracies") %>%
+  rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
+  bind_rows(models_frequency_regime$diffs_summary) %>% 
+  mutate(across(c(y, ymin, ymax, p_greater_0), 
+                list(nice = ~label_number(accuracy = 0.01)(.)))) %>% 
+  mutate(nice_value = glue("{y_nice}<br>({ymin_nice} – {ymax_nice})")) %>% 
+  mutate(Q4.14_collapsed = str_replace(Q4.14_collapsed, " - ", " − ")) %>% 
+  select(type, Q4.14_collapsed, nice_value, p_greater_0_nice) %>% 
+  group_by(type) %>% 
+  gt() %>% 
+  cols_label(
+    Q4.14_collapsed = "",
+    nice_value = "Posterior median",
+    p_greater_0_nice = "p > 0"
+  ) %>% 
+  fmt_markdown(nice_value) %>% 
+  sub_missing(p_greater_0_nice) %>% 
+  tab_footnote(footnote = "95% credible intervals shown in parentheses") %>% 
+  opts_theme()
+```
 
 ## How NGOs find out about changes
 
+```{r plot-change-how, fig.width=6, fig.height=2}
+df_change_how <- survey_countries %>%
+  unnest(Q4.15_value) %>%
+  group_by(Q4.15_value) %>%
+  summarise(num = n()) %>%
+  arrange(desc(num)) %>%
+  filter(!is.na(Q4.15_value)) %>%
+  mutate(how = fct_inorder(Q4.15_value)) %>%
+  mutate(how = fct_recode(how,
+    "Newspapers, television,\nand other media" = "Newspapers, television, and other media", 
+    NULL = "Don't know"
+  )) %>%
+  filter(!is.na(how))
+
+ggplot(df_change_how, aes(x = num, y = fct_rev(how))) +
+  geom_pointrange(aes(xmin = 0, xmax = num)) +
+  scale_x_continuous(
+    sec.axis = sec_axis(~ . / nrow(survey_countries),
+    labels = label_percent()
+  )) +
+  labs(x = "Times selected", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank())
+
+# What are the other ways?
+df_change_how_other <- survey_countries %>%
+  filter(!is.na(Q4.15_other_TEXT)) %>%
+  select(clean.id, Q4.15_other_TEXT) %>%
+  arrange(Q4.15_other_TEXT)
+```
+
 ## Are NGOs registered?
+
+### Regime type
+
+```{r plot-registration-regime, warning=FALSE}
+ggplot(data = df_registration_regime) +
+  geom_mosaic(
+    aes(
+      x = product(target.regime.type, Q4.4_collapsed),
+      fill = target.regime.type
+    ),
+    divider = mosaic("v"),
+    offset = 0, color = "white", linewidth = 1
+  ) +
+  scale_fill_manual(
+    values = c(clrs$Prism[4], clrs$Prism[6]),
+    guide = "none"
+  ) +
+  labs(
+    x = "Target country regime type",
+    y = "Registration status"
+  ) +
+  theme_ingo() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    plot.title = element_markdown(lineheight = 1.2)
+  )
+```
+
+```{r plot-registration-regime-bayes, fig.height=4}
+p1 <- models_registration_regime$draws %>%
+  ggplot(aes(x = .epred, y = Q4.4_collapsed, fill = Q4.4_collapsed)) +
+  stat_halfeye() +
+  scale_x_continuous(labels = label_percent()) +
+  scale_fill_manual(
+    values = c(clrs$Prism[7], clrs$Prism[2]),
+    guide = "none"
+  ) +
+  labs(x = "Posterior proportion", y = "Registration status") +
+  facet_wrap(vars("INGOs working in autocracies")) +
+  theme_ingo()
+
+plot_data <- models_registration_regime$diffs %>%
+  mutate(diffs = factor(Q4.4_collapsed))
+
+diffs_summary <- plot_data %>% 
+  group_by(diffs) %>% 
+  median_qi(.epred, .width = c(0.5, 0.8, 0.95))
+
+p2 <- models_registration_regime$diffs %>% 
+  mutate(diffs = factor(Q4.4_collapsed)) %>% 
+  ggplot(aes(x = .epred, fill = diffs, pattern_fill = diffs)) +
+  geom_density_pattern(
+    pattern = "stripe",
+    pattern_density = 0.5,
+    pattern_spacing = 0.2,
+    pattern_size = 0,
+    trim = TRUE,
+    linewidth = 0
+  ) +
+  geom_pointinterval(data = diffs_summary, aes(x = .epred, xmin = .lower, xmax = .upper)) +
+  geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
+  facet_wrap(vars(diffs), ncol = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2]),
+                    guide = "none") +
+  scale_pattern_fill_manual(values = c(clrs$Prism[7]),
+                            guide = "none") +
+  scale_x_continuous(labels = label_number(scale = 100, style_negative = "minus",
+                                           suffix = " pp."),
+                     breaks = seq(-0.4, 0.4, by = 0.1)) +
+  labs(x = "Percentage point differences", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_blank())
+
+p1 | p2
+```
+
+```{r tab-registration-regime-bayes}
+models_registration_regime$draws %>% 
+  median_qi(.epred) %>% 
+  mutate(Q4.4_collapsed = as.character(Q4.4_collapsed),
+         type = "Median proportions for INGOs working in autocracies") %>%
+  rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
+  bind_rows(models_registration_regime$diffs_summary) %>% 
+  mutate(across(c(y, ymin, ymax, p_greater_0), 
+                list(nice = ~label_number(accuracy = 0.01)(.)))) %>% 
+  mutate(nice_value = glue("{y_nice}<br>({ymin_nice} – {ymax_nice})")) %>% 
+  mutate(Q4.4_collapsed = str_replace(Q4.4_collapsed, " - ", " − ")) %>% 
+  select(type, Q4.4_collapsed, nice_value, p_greater_0_nice) %>% 
+  group_by(type) %>% 
+  gt() %>% 
+  cols_label(
+    Q4.4_collapsed = "",
+    nice_value = "Posterior median",
+    p_greater_0_nice = "p > 0"
+  ) %>% 
+  fmt_markdown(nice_value) %>% 
+  sub_missing(p_greater_0_nice) %>% 
+  tab_footnote(footnote = "95% credible intervals shown in parentheses") %>% 
+  opts_theme()
+```
+
+### Issue contentiousness
+
+```{r plot-registration-issue, warning=FALSE}
+ggplot(data = df_registration_issue) +
+  geom_mosaic(aes(x = product(potential.contentiousness, Q4.4_collapsed), 
+                  fill = potential.contentiousness),
+              divider = mosaic("v"), 
+              offset = 0, color = "white", linewidth = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[8]),
+                    guide = "none") +
+  labs(x = "Contentiousness of INGO work",
+       y = "Registration status") +
+  theme_ingo() +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        plot.title = element_markdown(lineheight = 1.2))
+```
+
+```{r plot-registration-issue-bayes, fig.height=4}
+p1 <- models_registration_issue$draws %>% 
+  ggplot(aes(x = .epred, y = Q4.4_collapsed, fill = Q4.4_collapsed)) +
+  stat_halfeye() +
+  scale_x_continuous(labels = label_percent()) +
+  scale_fill_manual(values = c(clrs$Prism[7], clrs$Prism[2]),
+                    guide = "none") +
+  labs(x = "Posterior proportion", y = "Registration status") +
+  facet_wrap(vars("INGOs with contentious issues")) +
+  theme_ingo()
+
+plot_data <- models_registration_issue$diffs %>% 
+  mutate(diffs = factor(Q4.4_collapsed))
+
+diffs_summary <- plot_data %>% 
+  group_by(diffs) %>% 
+  median_qi(.epred, .width = c(0.5, 0.8, 0.95))
+
+p2 <- plot_data %>% 
+  ggplot(aes(x = .epred, fill = diffs, pattern_fill = diffs)) +
+  geom_density_pattern(
+    # aes(y = after_stat(density * 1e5)),
+    pattern = "stripe",
+    pattern_density = 0.5,
+    pattern_spacing = 0.2,
+    pattern_size = 0,
+    trim = TRUE,
+    linewidth = 0
+  ) +
+  geom_pointinterval(data = diffs_summary, aes(x = .epred, xmin = .lower, xmax = .upper)) +
+  geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
+  facet_wrap(vars(diffs), ncol = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2]),
+                    guide = "none") +
+  scale_pattern_fill_manual(values = c(clrs$Prism[7]),
+                            guide = "none") +
+  scale_x_continuous(labels = label_number(scale = 100, style_negative = "minus",
+                                           suffix = "\n pp."),
+                     breaks = seq(-0.4, 0.1, by = 0.1)) +
+  labs(x = "Percentage point differences", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_blank())
+
+p1 | p2
+```
+
+```{r tab-registration-issue-bayes}
+models_registration_issue$draws %>% 
+  median_qi(.epred) %>% 
+  mutate(Q4.4_collapsed = as.character(Q4.4_collapsed),
+         type = "Median proportions for NGOs working on contentious issues") %>%
+  rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
+  bind_rows(models_registration_issue$diffs_summary) %>% 
+  mutate(across(c(y, ymin, ymax, p_greater_0), 
+                list(nice = ~label_number(accuracy = 0.01)(.)))) %>% 
+  mutate(nice_value = glue("{y_nice}<br>({ymin_nice} – {ymax_nice})")) %>% 
+  mutate(Q4.4_collapsed = str_replace(Q4.4_collapsed, " - ", " − ")) %>% 
+  select(type, Q4.4_collapsed, nice_value, p_greater_0_nice) %>% 
+  group_by(type) %>% 
+  gt() %>% 
+  cols_label(
+    Q4.4_collapsed = "",
+    nice_value = "Posterior median",
+    p_greater_0_nice = "p > 0"
+  ) %>% 
+  fmt_markdown(nice_value) %>% 
+  sub_missing(p_greater_0_nice) %>% 
+  tab_footnote(footnote = "95% credible intervals shown in parentheses") %>% 
+  opts_theme()
+```
 
 
 # Government involvement in INGO activity
 
 ## Contact and reporting frequency
+
+```{r plot-report-frequency}
+df_freq_report <- survey_all %>%
+  mutate(Q4.8.collapsed = fct_recode(Q4.8.clean,
+    `More than once a year` = "More than once a week",
+    `More than once a year` = "Once a week",
+    `More than once a year` = "More than once a month,\nless than once a week",
+    `More than once a year` = "Once a month",
+    `More than once a year` = "More than once a year,\nless than once a month",
+    `Annually` = "Once a year",
+    `Once every 2+ years` = "Once every 2+ years",
+    `Never` = "Rarely",
+    `Never` = "Never",
+    `As necessary` = "As necessary/depends",
+    NULL = "Don't know"
+  )) %>%
+  mutate(Q4.8.collapsed = fct_relevel(Q4.8.collapsed, "As necessary", after = 1)) %>%
+  filter(!is.na(Q4.8.collapsed)) %>%
+  group_by(target.regime.type, Q4.8.collapsed) %>%
+  summarise(num = n()) %>%
+  rename(freq = Q4.8.collapsed)
+```
+
+```{r plot-contact-frequency}
+df_freq_contact <- survey_all %>%
+  mutate(Q4.5.collapsed = fct_recode(Q4.5.clean,
+    `More than once a year` = "More than once a week",
+    `More than once a year` = "Once a week",
+    `More than once a year` = "More than once a month,\nless than once a week",
+    `More than once a year` = "Once a month",
+    `More than once a year` = "More than once a year,\nless than once a month",
+    `Annually` = "Once a year",
+    `Once every 2+ years` = "Once every 2+ years",
+    `Never` = "Rarely",
+    `Never` = "Never",
+    `As necessary` = "As necessary/depends",
+    NULL = "Don't know"
+  )) %>%
+  mutate(Q4.5.collapsed = fct_relevel(Q4.5.collapsed, "As necessary", after = 1)) %>%
+  filter(!is.na(Q4.5.collapsed)) %>%
+  group_by(target.regime.type, Q4.5.collapsed) %>%
+  summarise(num = n()) %>%
+  rename(freq = Q4.5.collapsed)
+```
+
+```{r plot-freq-govt-both, fig.width=6, fig.height=3}
+df_freq_both <- bind_rows(
+  df_freq_contact,
+  df_freq_report,
+  .id = "report.type"
+) %>%
+  mutate(report.type = recode(
+    report.type,
+    `1` = "Contact with the government",
+    `2` = "Reporting to the government"
+  ))
+
+ggplot(
+  df_freq_both,
+  aes(
+    x = num, y = freq,
+    colour = target.regime.type
+  )
+) +
+  geom_pointrange(
+    aes(xmin = 0, xmax = num),
+    position = position_dodge(width = 0.5),
+    size = 0.5
+  ) +
+  scale_colour_manual(
+    values = c(clrs$Prism[4], clrs$Prism[6]), name = NULL
+  ) +
+  guides(colour = guide_legend(reverse = TRUE)) +
+  labs(x = "Number of responses", y = NULL) +
+  facet_wrap(vars(report.type)) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank())
+```
+
+```{r plot-officials-contact, fig.width=6, fig.height=3}
+df_officials_contact_most <- survey_all %>%
+  group_by(Q4.7) %>%
+  summarise(num = n()) %>%
+  arrange(desc(num)) %>%
+  filter(!is.na(Q4.7)) %>%
+  mutate(issue = factor(Q4.7, levels = rev(Q4.7), ordered = TRUE))
+
+ggplot(
+  df_officials_contact_most,
+  aes(x = num, y = issue)
+) +
+  geom_pointrange(aes(xmin = 0, xmax = num)) +
+  labs(x = "Times selected", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank())
+```

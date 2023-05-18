@@ -192,3 +192,168 @@ make_govt_positivity_issue_models <- function(x) {
   return(lst(data = df_govt_positivity_issue_collapsed, 
              model, draws, diffs, diffs_summary))
 }
+
+make_familiarity_regime <- function(x) {
+  df_familiarity_regime <- x %>%
+    select(Q4.13_collapsed, target.regime.type) %>%
+    filter(!is.na(Q4.13_collapsed), Q4.13_collapsed != "NULL") %>% 
+    mutate(Q4.13_collapsed = fct_drop(Q4.13_collapsed))
+  
+  return(df_familiarity_regime)
+}
+
+make_familiarity_regime_models <- function(x) {
+  df_familiarity_regime_collapsed <- x %>% 
+    group_by(Q4.13_collapsed, target.regime.type) %>%
+    summarize(num = n()) %>% 
+    group_by(Q4.13_collapsed) %>%
+    mutate(total = sum(num)) %>% 
+    filter(target.regime.type == "Autocracy")
+  
+  model <- brm(
+    bf(num | trials(total) ~ 0 + Q4.13_collapsed),
+    data = df_familiarity_regime_collapsed,
+    family = stats::binomial(link = "identity"),
+    prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
+  )
+  
+  draws <- extract_posterior_draws(model, prop = TRUE)
+  diffs <- extract_diffs(model, prop = TRUE)
+  diffs_summary <- extract_diffs_summary(diffs)
+  
+  return(lst(data = df_familiarity_regime_collapsed, 
+             model, draws, diffs, diffs_summary))
+}
+
+make_familiarity_issue <- function(x) {
+  df_familiarity_issue <- x %>%
+    select(Q4.13_collapsed, potential.contentiousness) %>%
+    filter(!is.na(Q4.13_collapsed), Q4.13_collapsed != "NULL") %>% 
+    mutate(Q4.13_collapsed = fct_drop(Q4.13_collapsed))
+  
+  return(df_familiarity_issue)
+}
+
+make_familiarity_issue_models <- function(x) {
+  df_familiarity_issue_collapsed <- x %>% 
+    group_by(Q4.13_collapsed, potential.contentiousness) %>%
+    summarize(num = n()) %>% 
+    group_by(Q4.13_collapsed) %>%
+    mutate(total = sum(num)) %>% 
+    filter(potential.contentiousness == "High contention")
+  
+  model <- brm(
+    bf(num | trials(total) ~ 0 + Q4.13_collapsed),
+    data = df_familiarity_issue_collapsed,
+    family = stats::binomial(link = "identity"),
+    prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
+  )
+  
+  draws <- extract_posterior_draws(model, prop = TRUE)
+  diffs <- extract_diffs(model, prop = TRUE)
+  diffs_summary <- extract_diffs_summary(diffs)
+  
+  return(lst(data = df_familiarity_issue_collapsed, 
+             model, draws, diffs, diffs_summary))
+}
+
+make_frequency_regime <- function(x) {
+  df_frequency_regime <- x %>%
+    select(Q4.14_collapsed, target.regime.type) %>%
+    filter(!is.na(Q4.14_collapsed), Q4.14_collapsed != "NULL") %>% 
+    mutate(Q4.14_collapsed = fct_drop(Q4.14_collapsed))
+  
+  return(df_frequency_regime)
+}
+
+make_frequency_regime_models <- function(x) {
+  df_frequency_regime_collapsed <- x %>% 
+    group_by(Q4.14_collapsed, target.regime.type) %>%
+    summarize(num = n()) %>% 
+    group_by(Q4.14_collapsed) %>%
+    mutate(total = sum(num)) %>% 
+    filter(target.regime.type == "Autocracy")
+  
+  model <- brm(
+    bf(num | trials(total) ~ 0 + Q4.14_collapsed),
+    data = df_frequency_regime_collapsed,
+    family = stats::binomial(link = "identity"),
+    prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
+  )
+  
+  draws <- extract_posterior_draws(model, prop = TRUE)
+  diffs <- extract_diffs(model, prop = TRUE)
+  diffs_summary <- extract_diffs_summary(diffs)
+  
+  return(lst(data = df_frequency_regime_collapsed, 
+             model, draws, diffs, diffs_summary))
+}
+
+make_registration_regime <- function(x) {
+  df_registration_regime <- x %>%
+    select(Q4.4_collapsed, target.regime.type) %>%
+    filter(!is.na(Q4.4_collapsed), Q4.4_collapsed != "NULL") %>% 
+    mutate(Q4.4_collapsed = fct_drop(Q4.4_collapsed))
+  
+  return(df_registration_regime)
+}
+
+make_registration_regime_models <- function(x) {
+  df_registration_regime_collapsed <- x %>% 
+    group_by(Q4.4_collapsed, target.regime.type) %>%
+    summarize(num = n()) %>% 
+    group_by(Q4.4_collapsed) %>%
+    mutate(total = sum(num)) %>% 
+    filter(target.regime.type == "Autocracy")
+  
+  model <- brm(
+    bf(num | trials(total) ~ 0 + Q4.4_collapsed),
+    data = df_registration_regime_collapsed,
+    family = stats::binomial(link = "identity"),
+    prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
+  )
+  
+  draws <- extract_posterior_draws(model, prop = TRUE)
+  diffs <- extract_diffs(model, prop = TRUE)
+  diffs_summary <- extract_diffs_summary(diffs)
+  
+  return(lst(data = df_registration_regime_collapsed, 
+             model, draws, diffs, diffs_summary))
+}
+
+make_registration_issue <- function(x) {
+  df_registration_issue <- x %>%
+    select(Q4.4_collapsed, potential.contentiousness) %>%
+    filter(!is.na(Q4.4_collapsed), Q4.4_collapsed != "NULL") %>% 
+    mutate(Q4.4_collapsed = fct_drop(Q4.4_collapsed))
+  
+  return(df_registration_issue)
+}
+
+make_registration_issue_models <- function(x) {
+  df_registration_issue_collapsed <- x %>% 
+    group_by(Q4.4_collapsed, potential.contentiousness) %>%
+    summarize(num = n()) %>% 
+    group_by(Q4.4_collapsed) %>%
+    mutate(total = sum(num)) %>% 
+    filter(potential.contentiousness == "High contention")
+  
+  model <- brm(
+    bf(num | trials(total) ~ 0 + Q4.4_collapsed),
+    data = df_registration_issue_collapsed,
+    family = stats::binomial(link = "identity"),
+    prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
+  )
+  
+  draws <- extract_posterior_draws(model, prop = TRUE)
+  diffs <- extract_diffs(model, prop = TRUE)
+  diffs_summary <- extract_diffs_summary(diffs)
+  
+  return(lst(data = df_registration_issue_collapsed, 
+             model, draws, diffs, diffs_summary))
+}
