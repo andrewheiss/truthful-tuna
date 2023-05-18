@@ -2,7 +2,9 @@
   "bioconductor.version": null,
   "external.libraries": [],
   "ignored.packages": [
-    "rsthemes"
+    "rsthemes",
+    "styler",
+    "prettycode"
   ],
   "package.dependency.fields": [
     "Imports",
