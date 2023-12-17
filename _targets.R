@@ -70,12 +70,22 @@ list(
     ),
     format = "file"
   ),
+  tar_target(dcjw_file,
+    here_rel("data", "raw-data", "dcjw-ngo-laws", "DCJW_NGO_Laws.xlsx"),
+    format = "file"
+  ),
+  tar_target(gwf_file,
+    here_rel("data", "raw-data", "gwf-autocratic-regimes", "GWF_AllPoliticalRegimes.dta"),
+    format = "file"
+  ),
 
   ## Process and clean data ----
   tar_target(survey_orgs, clean_survey_orgs(survey_orgs_file)),
   tar_target(survey_countries, clean_survey_countries(survey_countries_file)),
   tar_target(survey_all, clean_survey_all(survey_all_file)),
   tar_target(world_map, load_world_map(naturalearth_raw_file)),
+  tar_target(dcjw, clean_dcjw(dcjw_file)),
+  tar_target(gwf, clean_gwf(gwf_file)),
 
   ## Graphics ----
   tar_target(graphic_functions, lst(
@@ -132,6 +142,24 @@ list(
   tar_target(
     models_registration_issue,
     make_registration_issue_models(df_registration_issue)
+  ),
+  
+  tar_target(df_restrictions_regime, make_restrictions_regime(survey_countries)),
+  tar_target(
+    models_restrictions_regime,
+    make_restrictions_regime_models(df_restrictions_regime)
+  ),
+  
+  tar_target(df_restrictions_issue, make_restrictions_issue(survey_countries)),
+  tar_target(
+    models_restrictions_issue,
+    make_restrictions_issue_models(df_restrictions_issue)
+  ),
+  
+  tar_target(df_restrictions_reg_regime, make_restrictions_reg_regime(survey_countries)),
+  tar_target(
+    models_restrictions_reg_regime,
+    make_restrictions_reg_regime_models(df_restrictions_reg_regime)
   ),
 
   # Manuscript and analysis notebook ----

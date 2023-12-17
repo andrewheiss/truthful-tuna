@@ -19,15 +19,14 @@ extract_posterior_draws <- function(model, prop = FALSE) {
   return(post)
 }
 
-extract_diffs <- function(model, prop = FALSE) {
+extract_diffs <- function(model, prop = FALSE, comparison = "pairwise") {
   post <- extract_posterior_draws(model, prop = prop)
   
   var_name <- labels(terms(as.formula(model$formula)))
 
-  post %>% 
-    ungroup() %>% 
-    compare_levels(.epred, by = var_name,
-                   comparison = "pairwise")
+  post %>%
+    ungroup() %>%
+    compare_levels(.epred, by = var_name, comparison = !!comparison)
 }
 
 extract_diffs_summary <- function(diffs) {
@@ -356,4 +355,114 @@ make_registration_issue_models <- function(x) {
   
   return(lst(data = df_registration_issue_collapsed, 
              model, draws, diffs, diffs_summary))
+}
+
+make_restrictions_regime <- function(x) {
+  df_restrictions_regime <- x %>%
+    select(Q4.17_collapsed, target.regime.type) %>%
+    filter(!is.na(Q4.17_collapsed), Q4.17_collapsed != "NULL") %>% 
+    mutate(Q4.17_collapsed = fct_drop(Q4.17_collapsed))
+  
+  return(df_restrictions_regime)
+}
+
+make_restrictions_regime_models <- function(x) {
+  df_restrictions_regime_collapsed <- x %>% 
+    group_by(Q4.17_collapsed, target.regime.type) %>%
+    summarize(num = n()) %>% 
+    group_by(Q4.17_collapsed) %>%
+    mutate(total = sum(num)) %>% 
+    filter(target.regime.type == "Autocracy")
+  
+  model <- brm(
+    bf(num | trials(total) ~ 0 + Q4.17_collapsed),
+    data = df_restrictions_regime_collapsed,
+    family = stats::binomial(link = "identity"),
+    prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
+  )
+  
+  draws <- extract_posterior_draws(model, prop = TRUE)
+  diffs <- extract_diffs(model, prop = TRUE, comparison = "ordered")
+  diffs_summary <- extract_diffs_summary(diffs)
+  
+  return(lst(data = df_restrictions_regime_collapsed, 
+    model, draws, diffs, diffs_summary))
+}
+
+make_restrictions_issue <- function(x) {
+  df_restrictions_issue <- x %>%
+    select(Q4.17_collapsed, potential.contentiousness) %>%
+    filter(!is.na(Q4.17_collapsed), Q4.17_collapsed != "NULL") %>% 
+    mutate(Q4.17_collapsed = fct_drop(Q4.17_collapsed))
+  
+  return(df_restrictions_issue)
+}
+
+make_restrictions_issue_models <- function(x) {
+  df_restrictions_issue_collapsed <- x %>% 
+    group_by(Q4.17_collapsed, potential.contentiousness) %>%
+    summarize(num = n()) %>% 
+    group_by(Q4.17_collapsed) %>%
+    mutate(total = sum(num)) %>% 
+    filter(potential.contentiousness == "High contention")
+  
+  model <- brm(
+    bf(num | trials(total) ~ 0 + Q4.17_collapsed),
+    data = df_restrictions_issue_collapsed,
+    family = stats::binomial(link = "identity"),
+    prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
+  )
+  
+  draws <- extract_posterior_draws(model, prop = TRUE)
+  diffs <- extract_diffs(model, prop = TRUE, comparison = "ordered")
+  diffs_summary <- extract_diffs_summary(diffs)
+  
+  return(lst(data = df_restrictions_issue_collapsed, 
+    model, draws, diffs, diffs_summary))
+}
+
+make_restrictions_reg_regime <- function(x) {
+  df_restrictions_reg_regime <- x %>%
+    select(Q4.17_collapsed, Q4.4_collapsed, target.regime.type) %>%
+    filter(
+      !is.na(Q4.17_collapsed), !is.null(Q4.17_collapsed), Q4.17_collapsed != "NULL",
+      !is.na(Q4.4_collapsed), Q4.4_collapsed != "NULL"
+    ) %>% 
+    mutate(regime_registered = fct_rev(paste(Q4.4_collapsed, target.regime.type)))
+  
+  return(df_restrictions_reg_regime)
+}
+
+make_restrictions_reg_regime_models <- function(x) {
+  df_restrictions_reg_regime_collapsed <- x %>% 
+    group_by(Q4.17_collapsed, Q4.4_collapsed, target.regime.type) %>%
+    summarize(num = n()) %>% 
+    group_by(Q4.17_collapsed, target.regime.type) %>%
+    mutate(total = sum(num))
+  
+  # To avoid recompiling the model dozens of times, we'll make an intercept-only
+  # model first here, then use update() to re-run it with actual data
+  initial_model <- brm(
+    bf(num | trials(total) ~ 0 + Intercept), 
+    data = list(num = 5, total = 5),
+    family = stats::binomial(link = "identity"),
+    prior = c(prior(beta(5, 5), class = b, lb = 0, ub = 1)),
+    chains = CHAINS, iter = ITER, warmup = WARMUP, seed = BAYES_SEED, refresh = 0
+  )
+  
+  df_with_models <- df_restrictions_reg_regime_collapsed %>%
+    group_by(Q4.17_collapsed, target.regime.type) %>% 
+    nest() %>% 
+    mutate(model = map(data, ~{
+      update(initial_model, 
+        formula = bf(num | trials(total) ~ 0 + Q4.4_collapsed),
+        newdata = .x)
+    })) %>% 
+    mutate(draws = map(model, extract_posterior_draws, prop = TRUE)) %>% 
+    mutate(diffs = map(model, extract_diffs, prop = TRUE)) %>% 
+    mutate(diffs_summary = map(diffs, extract_diffs_summary))
+  
+  return(df_with_models)
 }

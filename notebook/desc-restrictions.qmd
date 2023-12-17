@@ -15,3 +15,386 @@ options(digits = 3, width = 120,
         dplyr.summarise.inform = FALSE,
         knitr.kable.NA = "")
 ```
+
+```{r load-libraries-data, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(targets)
+library(scales)
+library(glue)
+library(gt)
+library(ggmosaic)
+library(ggtext)
+library(patchwork)
+library(tidybayes)
+library(here)
+library(ggpattern)
+library(countrycode)
+
+tar_config_set(store = here('_targets'),
+               script = here('_targets.R'))
+
+tar_load(c(survey_orgs, survey_countries, survey_all, dcjw, gwf))
+tar_load(c(
+  df_restrictions_regime, models_restrictions_regime,
+  df_restrictions_issue, models_restrictions_issue,
+  df_restrictions_reg_regime, models_restrictions_reg_regime
+))
+
+# Plotting functions
+invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+invisible(list2env(tar_read(table_functions), .GlobalEnv))
+set_annotation_fonts()
+```
+
+
+# Routine regulation vs. burdensome regulation
+
+```{r plot-dcjw-registration, fig.width=6, fig.height=2, warning=FALSE}
+dcjw_registration <- dcjw %>%
+  mutate(question = recode(question,
+    q_2a = "registration",
+    q_2b = "burdensome",
+    q_2c = "appeal",
+    q_2d = "diff.foreign"
+  )) %>%
+  filter(question %in% c("registration", "burdensome"))
+
+dcjw_registration_panel <- dcjw_registration %>%
+  tidyr::expand(Country, question,
+    year = min(.$year, na.rm = TRUE):2013
+  ) %>%
+  left_join(
+    dcjw_registration,
+    by = c("Country", "question", "year")
+  ) %>%
+  # Bring most recent legislation forward
+  group_by(Country, question) %>%
+  mutate(value = zoo::na.locf(value, na.rm = FALSE)) %>%
+  ungroup() %>%
+  mutate(value = ifelse(is.na(value), 0, value)) %>%
+  mutate(cowcode = countrycode(Country, "country.name", "cown",
+    custom_match = c(`Serbia` = 340L)
+  ))
+
+regime_types <- gwf %>%
+  select(cowcode, year, gwf.ever.autocracy) %>%
+  group_by(cowcode) %>%
+  summarise(ever.autocracy = any(gwf.ever.autocracy, na.rm = TRUE))
+
+dcjw_registration_summary <- dcjw_registration_panel %>%
+  left_join(regime_types, by = "cowcode") %>%
+  # There are a few countries that didn't have regime type from full.data
+  mutate(ever.autocracy = case_when(
+    .$Country %in% c(
+      "Bahrain", "Equatorial Guinea", "Kuwait", "Oman",
+      "Singapore", "United Arab Emirates"
+    ) ~ TRUE,
+    .$Country == "Serbia" ~ FALSE,
+    TRUE ~ .$ever.autocracy
+  )) %>%
+  group_by(year, question, ever.autocracy) %>%
+  summarise(prop.with.reg = sum(value) / n()) %>%
+  ungroup() %>%
+  mutate(
+    question =
+      factor(question,
+        levels = c("registration", "burdensome"),
+        labels = c(
+          "Registration required",
+          "Registration burdensome"
+        )
+      )
+  ) %>%
+  mutate(
+    ever.autocracy =
+      factor(ever.autocracy,
+        levels = c(TRUE, FALSE),
+        labels = c("Autocracies", "Democracies")
+      )
+  ) %>%
+  mutate(ever.autocracy = factor(ever.autocracy,
+    levels = rev(levels(ever.autocracy)),
+    ordered = TRUE
+  )) %>%
+  filter(year > 1990)
+
+ggplot(
+  dcjw_registration_summary,
+  aes(x = year, y = prop.with.reg, colour = ever.autocracy)
+) +
+  geom_line() +
+  labs(x = NULL, y = "Proportion of countries\nwith regulations") +
+  scale_y_continuous(labels = label_percent()) +
+  coord_cartesian(ylim = c(0, 0.65)) +
+  scale_colour_manual(values = c(clrs$Prism[4], clrs$Prism[6]), 
+    name = NULL, na.translate = FALSE) +
+  theme_ingo() +
+  facet_wrap(vars(question))
+```
+
+
+# Overall restriction
+
+## Regime type
+
+```{r plot-restrictions-regime, warning=FALSE}
+ggplot(data = df_restrictions_regime) +
+  geom_mosaic(aes(x = product(target.regime.type, Q4.17_collapsed), 
+                  fill = target.regime.type),
+              divider = mosaic("v"), 
+              offset = 0, color = "white", linewidth = 1) +
+  scale_fill_manual(values = c(clrs$Prism[4], clrs$Prism[6]),
+                    guide = "none") +
+  labs(x = "Target country regime type",
+       y = "Level of restriction in target country") +
+  theme_ingo() +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        plot.title = element_markdown(lineheight = 1.2))
+```
+
+```{r plot-restrictions-regime-bayes, fig.width=7.5, fig.height=4}
+# Template: 60% of INGOs that reported feeling very restricted work in autocracies
+p1 <- models_restrictions_regime$draws %>% 
+  ggplot(aes(x = .epred, y = Q4.17_collapsed, fill = Q4.17_collapsed)) +
+  stat_halfeye() +
+  scale_x_continuous(labels = label_percent()) +
+  scale_fill_manual(values = clrs$Peach[c(1, 3, 5, 7)],
+                    guide = "none") +
+  labs(x = "Posterior proportion", y = "Level of restriction in target country") +
+  facet_wrap(vars("Proportion of INGOs that reported level\nof restriction that work in autocracies")) +
+  theme_ingo()
+
+plot_data <- models_restrictions_regime$diffs %>%
+  mutate(diffs = factor(Q4.17_collapsed,
+    levels = c(
+      "Very restricted - Moderately restricted",
+      "Moderately restricted - Slightly restricted",
+      "Slightly restricted - Not restricted"
+    )
+  ))
+
+diffs_summary <- plot_data %>% 
+  group_by(diffs) %>% 
+  median_qi(.epred, .width = c(0.5, 0.8, 0.95))
+
+p2 <- models_restrictions_regime$diffs %>% 
+  mutate(diffs = factor(Q4.17_collapsed,
+    levels = c(
+      "Very restricted - Moderately restricted",
+      "Moderately restricted - Slightly restricted",
+      "Slightly restricted - Not restricted"
+    )
+  )) %>% 
+  ggplot(aes(x = .epred, fill = diffs, pattern_fill = diffs)) +
+  geom_density_pattern(
+    pattern = "stripe",
+    pattern_density = 0.5,
+    pattern_spacing = 0.2,
+    pattern_size = 0,
+    trim = TRUE,
+    linewidth = 0
+  ) +
+  geom_pointinterval(data = diffs_summary, aes(x = .epred, xmin = .lower, xmax = .upper)) +
+  geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
+  facet_wrap(vars(diffs), ncol = 1) +
+  scale_fill_manual(values = c(clrs$Peach[7], clrs$Peach[5], clrs$Peach[3]),
+                    guide = "none") +
+  scale_pattern_fill_manual(values = c(clrs$Peach[5], clrs$Peach[3], clrs$Peach[1]),
+                            guide = "none") +
+  scale_x_continuous(labels = label_number(scale = 100, style_negative = "minus",
+                                           suffix = " pp."),
+                     breaks = seq(-0.6, 0.2, by = 0.2)) +
+  labs(x = "Percentage point differences", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_blank())
+
+p1 | p2
+```
+
+```{r tab-restrictions-regime-bayes}
+models_restrictions_regime$draws %>% 
+  median_qi(.epred) %>% 
+  mutate(Q4.17_collapsed = as.character(Q4.17_collapsed),
+         type = "Median proportions for INGOs working in autocracies") %>%
+  rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
+  bind_rows(models_restrictions_regime$diffs_summary) %>% 
+  mutate(across(c(y, ymin, ymax, p_greater_0), 
+                list(nice = ~label_number(accuracy = 0.01)(.)))) %>% 
+  mutate(nice_value = glue("{y_nice}<br>({ymin_nice} – {ymax_nice})")) %>% 
+  mutate(Q4.17_collapsed = str_replace(Q4.17_collapsed, " - ", " − ")) %>% 
+  select(type, Q4.17_collapsed, nice_value, p_greater_0_nice) %>% 
+  group_by(type) %>% 
+  gt() %>% 
+  cols_label(
+    Q4.17_collapsed = "",
+    nice_value = "Posterior median",
+    p_greater_0_nice = "p > 0"
+  ) %>% 
+  fmt_markdown(nice_value) %>% 
+  sub_missing(p_greater_0_nice) %>% 
+  tab_footnote(footnote = "95% credible intervals shown in parentheses") %>% 
+  opts_theme()
+```
+
+## Issue contentiousness
+
+```{r plot-restrictions-issue, warning=FALSE}
+ggplot(data = df_restrictions_issue) +
+  geom_mosaic(aes(x = product(potential.contentiousness, Q4.17_collapsed), 
+                  fill = potential.contentiousness),
+              divider = mosaic("v"), 
+              offset = 0, color = "white", linewidth = 1) +
+  scale_fill_manual(values = c(clrs$Prism[2], clrs$Prism[8]),
+                    guide = "none") +
+  labs(x = "Contentiousness of INGO work",
+       y = "Level of restriction in target country") +
+  theme_ingo() +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        plot.title = element_markdown(lineheight = 1.2))
+```
+
+```{r plot-restrictions-issue-bayes, fig.width=7.5, fig.height=4}
+p1 <- models_restrictions_issue$draws %>% 
+  ggplot(aes(x = .epred, y = Q4.17_collapsed, fill = Q4.17_collapsed)) +
+  stat_halfeye() +
+  scale_x_continuous(labels = label_percent()) +
+  scale_fill_manual(values = clrs$Peach[c(1, 3, 5, 7)],
+                    guide = "none") +
+  labs(x = "Posterior proportion", y = "Level of restriction in target country") +
+  facet_wrap(vars("INGOs with contentious issues")) +
+  theme_ingo()
+
+plot_data <- models_restrictions_issue$diffs %>% 
+  mutate(diffs = factor(Q4.17_collapsed,
+    levels = c(
+      "Very restricted - Moderately restricted",
+      "Moderately restricted - Slightly restricted",
+      "Slightly restricted - Not restricted"
+    )
+  ))
+
+diffs_summary <- plot_data %>% 
+  group_by(diffs) %>% 
+  median_qi(.epred, .width = c(0.5, 0.8, 0.95))
+
+p2 <- plot_data %>% 
+  ggplot(aes(x = .epred, fill = diffs, pattern_fill = diffs)) +
+  geom_density_pattern(
+    # aes(y = after_stat(density * 1e5)),
+    pattern = "stripe",
+    pattern_density = 0.5,
+    pattern_spacing = 0.2,
+    pattern_size = 0,
+    trim = TRUE,
+    linewidth = 0
+  ) +
+  geom_pointinterval(data = diffs_summary, aes(x = .epred, xmin = .lower, xmax = .upper)) +
+  geom_vline(xintercept = 0, linewidth = 0.5, color = clrs$Prism[8]) +
+  facet_wrap(vars(diffs), ncol = 1) +
+  scale_fill_manual(values = c(clrs$Peach[7], clrs$Peach[5], clrs$Peach[3]),
+                    guide = "none") +
+  scale_pattern_fill_manual(values = c(clrs$Peach[5], clrs$Peach[3], clrs$Peach[1]),
+                            guide = "none") +
+  scale_x_continuous(labels = label_number(scale = 100, style_negative = "minus",
+                                           suffix = "\n pp."),
+                     breaks = seq(-0.4, 0.4, by = 0.2)) +
+  labs(x = "Percentage point differences", y = NULL) +
+  theme_ingo() +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_blank())
+
+p1 | p2
+```
+
+```{r tab-restrictions-issue-bayes}
+models_restrictions_issue$draws %>% 
+  median_qi(.epred) %>% 
+  mutate(Q4.17_collapsed = as.character(Q4.17_collapsed),
+         type = "Median proportions for NGOs working on contentious issues") %>%
+  rename(y = .epred, ymin = .lower, ymax = .upper) %>% 
+  bind_rows(models_restrictions_issue$diffs_summary) %>% 
+  mutate(across(c(y, ymin, ymax, p_greater_0), 
+                list(nice = ~label_number(accuracy = 0.01)(.)))) %>% 
+  mutate(nice_value = glue("{y_nice}<br>({ymin_nice} – {ymax_nice})")) %>% 
+  mutate(Q4.17_collapsed = str_replace(Q4.17_collapsed, " - ", " − ")) %>% 
+  select(type, Q4.17_collapsed, nice_value, p_greater_0_nice) %>% 
+  group_by(type) %>% 
+  gt() %>% 
+  cols_label(
+    Q4.17_collapsed = "",
+    nice_value = "Posterior median",
+    p_greater_0_nice = "p > 0"
+  ) %>% 
+  fmt_markdown(nice_value) %>% 
+  sub_missing(p_greater_0_nice) %>% 
+  tab_footnote(footnote = "95% credible intervals shown in parentheses") %>% 
+  opts_theme()
+```
+
+
+# Registration and restrictions
+
+```{r plot-registration-restrictions, fig.width=6.5, fig.height=2}
+ggplot(data = df_restrictions_reg_regime) +
+  geom_mosaic(
+    aes(
+      x = product(regime_registered, Q4.17_collapsed),
+      fill = regime_registered
+    ),
+    divider = mosaic("v"),
+    offset = 0, color = "white", linewidth = 1, na.rm = TRUE
+  ) +
+  scale_x_productlist(
+    expand = c(0, 0.02),
+    labels = c("Registered", "", "Not registered", "")) +
+  scale_y_productlist(expand = c(0, 0.02)) +
+  scale_fill_manual(
+    values = c(
+      clrs$Prism[1], clrs$Prism[11],
+      clrs$Prism[7], clrs$Prism[6]
+    ),
+    guide = "none"
+  ) +
+  facet_wrap(vars(target.regime.type), ncol = 2) +
+  theme_ingo() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
+  )
+```
+
+```{r tab-registration-restrictions-diffs}
+#| tbl-cap: Median differences in proportion of registered and non-registered INGOs selecting frequency of type of restriction. Probability that the proportion is greater than 0 given in parentheses.
+models_restrictions_reg_regime %>% 
+  unnest(diffs_summary) %>% 
+  mutate(nice_value = glue::glue(
+    "{diff}<br>({p})",
+    diff = label_number(style_negative = "minus", accuracy = 0.01)(y),
+    p = label_number(accuracy = 0.01)(p_greater_0))
+  ) %>% 
+  ungroup() %>% 
+  select(Q4.17_collapsed, target.regime.type, nice_value) %>% 
+  pivot_wider(names_from = "target.regime.type", values_from = "nice_value") %>% 
+  gt() %>%
+  fmt_markdown(columns = 2:3) %>%
+  cols_align(align = "left", columns = Q4.17_collapsed) %>%
+  cols_label(Q4.17_collapsed = "") %>% 
+  tab_footnote(footnote = "Values show the differences in proportion of registered and non-registered INGOs providing each response (not registered proportion − registered proportion)") %>% 
+  opts_theme()
+```
+
+
+# Gatekeeping and program capture restrictions
+
+
+# Reactions to restrictions
+
+## Size
+
+## Other instrumental concerns
+
