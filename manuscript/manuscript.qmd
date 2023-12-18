@@ -4,15 +4,78 @@ subtitle: "A Conceptual Framework for Understanding International NGO Behavior i
 short-title: "Amicable Contempt"
 author:
 - name: Andrew Heiss
-  affiliation: Georgia State University
+  affiliations: 
+    - id: gsu
+      name: Georgia State University
+      department: Andrew Young School of Policy Studies, Department of Public Management and Policy
+      address: "55 Park Place NE, #464"
+      city: Atlanta
+      region: GA
+      country: USA
+      postal-code: 30303
+  url: https://www.andrewheiss.com/
   email: aheiss@gsu.edu
   orcid: 0000-0002-3948-3914
-bibliography: references.bib
+code-repo: "Access the code, data, and analysis at <https://github.com/andrewheiss/truthful-tuna>"
 abstract: |
   I use evidence from a global survey of international NGOs to define each INGO-related element of the theory of amicable contempt. I find that INGOs are primarily motivated by their core vision and values, but that they have to balance the pursuit of their missions with instrumental concerns such as fundraising, time, staffing, and collaboration. These concerns both limit and enable INGO activities—without substantial instrumental resources and programmatic flexibility, organizations are unable to carry out their mission, while too much emphasis on resource concerns distracts organizations from their core programming and reduces their effectiveness.
 
   Amid this internal struggle between mission and money, I then introduce how the civil society regulatory environment of INGO host countries is designed to target each element of this struggle. Gatekeeping regulations limit which organizations are allowed to enter the country and constrain the flexibility of organizations already present in the country. These regulations are primarily defensive and are designed to protect the regime against the potentially destabilizing effects of INGO advocacy and service provision. Program capture regulations, on the other hand, are more offensive and target organizational missions instead of their flexibility. These laws are designed to co-opt and reshape INGO programming to fall more in line with government preferences, allowing regimes to take advantage of INGO activities.
+
+bibliography: references.bib
+csl: csl/apa.csl
+link-citations: true
+word-count: "9,878"
 ---
+
+```{r setup, include=FALSE}
+if (is.null(knitr::pandoc_to())) {
+  fmt_out <- "interactive"
+} else {
+  fmt_out <- knitr::pandoc_to()
+}
+
+knitr::opts_chunk$set(
+  echo = FALSE, include = FALSE,
+  warning = FALSE, message = FALSE,
+  fig.align = "center", fig.retina = 3,
+  fig.width = 6, fig.height = (6 * 0.618),
+  out.width = "100%", collapse = TRUE
+)
+
+options(
+  digits = 3, width = 120,
+  dplyr.summarise.inform = FALSE
+)
+```
+
+```{r libraries-data}
+library(tidyverse)
+library(scales)
+library(tidybayes)
+library(marginaleffects)
+library(patchwork)
+library(glue)
+library(janitor)
+library(gt)
+library(targets)
+
+# Generated via random.org
+set.seed(8511)
+
+# Targets stuff
+tar_config_set(
+  store = here::here("_targets"),
+  script = here::here("_targets.R")
+)
+
+# Plotting and modelsummary functions
+invisible(list2env(tar_read(graphic_functions), .GlobalEnv))
+invisible(list2env(tar_read(table_functions), .GlobalEnv))
+
+theme_set(theme_ingo())
+set_annotation_fonts()
+```
 
 Lots of work on closing space - DPR2015
 
