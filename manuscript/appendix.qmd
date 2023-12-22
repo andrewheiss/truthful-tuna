@@ -6,7 +6,7 @@ author:
   affiliation: Georgia State University
   email: aheiss@gsu.edu
   orcid: 0000-0002-3948-3914
-bibliography: references.bib
+bibliography: references.json
 crossref: 
   tbl-title: Appendix Table
   fig-title: Appendix Figure

@@ -30,6 +30,7 @@ theme_ingo <- function(base_size = 11, base_family = "Fira Sans") {
           axis.title.x = element_text(hjust = 0, margin = margin(t = 10)),
           axis.title.y = element_text(hjust = 1, margin = margin(r = 10)),
           legend.position = "bottom",
+          legend.text = element_text(size = rel(0.7)),
           legend.title = element_text(size = rel(0.7), vjust = 0.5,
                                       family = "Fira Sans", face = "plain"),
           legend.key.size = unit(0.7, "line"),
