@@ -2,23 +2,27 @@ project:
   title: "Nice preprint output"
   output-dir: output
 
-link-citations: true
-
 format:
   html:
+    toc: true
+    language: 
+      title-block-published: "Latest version"
     shift-heading-level-by: 1
-    published-title: "Latest version"
     theme: 
       - zephyr
       - html/custom.scss
     citeproc: false
     filters: 
-      - "_extensions/andrewheiss/wordcount/citeproc.lua"
-      - "_extensions/andrewheiss/wordcount/wordcount.lua"
+      - at: pre-render
+        path: "_extensions/andrewheiss/wordcount/citeproc.lua"
+      - at: pre-render
+        path: "_extensions/andrewheiss/wordcount/wordcount.lua"
+    lightbox: auto
     knitr:
       opts_chunk:
         dev: "ragg_png"
         dpi: 300
+
 
   # Nice PDF output
   hikmah-pdf: 
@@ -27,7 +31,7 @@ format:
     mainfontoptions: 
       - "Numbers=Proportional"
       - "Numbers=OldStyle"
-    sansfont: "Noto Sans"
+    sansfont: "Fira Sans Condensed"
     mathfont: "Libertinus Math"
     # linestretch: 1.05
     
@@ -40,9 +44,3 @@ format:
     knitr:
       opts_chunk:
         dev: "cairo_pdf"
-  
-  docx:
-    knitr:
-      opts_chunk:
-        dev: "ragg_png"
-        dpi: 300

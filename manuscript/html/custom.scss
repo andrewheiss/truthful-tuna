@@ -1,6 +1,6 @@
 /*-- scss:rules --*/
 
-.abstract {
+#title-block-header {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   margin-bottom: 2em;
   padding-bottom: 2em;
@@ -8,4 +8,12 @@
 
 thead th {
   text-transform: none;
+}
+
+.MathJax, .MathJax_Display {
+  font-size: 100% !important;
+}
+
+h2.hide {
+  display: none;
 }
